@@ -36,7 +36,7 @@ describe('schemas', () => {
   it('rejects unknown types and bad totp values', () => {
     expect(() => itemSchema.parse({ type: 'nope' })).toThrow();
     expect(() =>
-      login({ totp: { secret: 's', digits: 9 } as never, urls: [{ url: 'a' }] }),
+      login({ totp: { secret: 's', digits: 9 } as never, urls: [{ url: 'a' }] as never }),
     ).toThrow();
   });
   it('accepts urls, custom fields and passkeys on a login', () => {

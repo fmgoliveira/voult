@@ -81,7 +81,7 @@ const ALGS = { 1: 'SHA1', 2: 'SHA256', 3: 'SHA512' } as const;
 
 function parseOtpParameters(buf: Uint8Array): Totp {
   const r = new Reader(buf);
-  let secret = new Uint8Array();
+  let secret: Uint8Array = new Uint8Array();
   let name = '';
   let issuer = '';
   let alg = 1;

@@ -30,7 +30,7 @@ export const passkeySchema = z.object({
   rpName: z.string().default(''),
   userHandle: z.string(),
   userName: z.string().default(''),
-  /** PKCS#8 ES256 private key, base64url. */
+  /** ES256 (P-256) private key: raw 32-byte scalar, base64url. */
   privateKey: z.string(),
   signCount: z.number().int().nonnegative(),
   createdAt: z.number().int(),
