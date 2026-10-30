@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### Phase 4 — Extension MVP
+
+- Onboarding (create account / sign in on a new device), mandatory recovery kit (secret key + PDF download) before the first item can be saved
+- Unlock with master password; optional memory-only quick-unlock PIN (Argon2id, 5 attempts then wiped); auto-lock on idle (1/5/15/60 min), screen lock and browser close; account key lives only in `storage.session`
+- Offline-first local store (Dexie) with outbox, push/pull sync, 409 merge with password history, WebSocket push, rotating refresh tokens guarded by a Web Lock
+- Popup: vault list (search, type/vault filter, sort, favourites/pins, trash with restore), item detail/edit for login/note/card/identity/2FA, password history, passkey list, generator (random + passphrase), authenticator tab with countdown rings and next-code preview, settings (auto-lock, clipboard clear, theme, PIN, change master password, devices)
+- Clipboard auto-clear scheduled by the background worker (offscreen document on Chrome)
+- Playwright e2e: create → lock → unlock → edit → sync across two Chromium profiles against a real server
+
 ### Phase 3 — Sync server
 
 - Hono + SQLite (Drizzle) server: signup (closes after first account unless `MULTI_USER=true`), login, rotating refresh tokens with reuse detection, per-device sessions and revoke, change password (drops other devices)
