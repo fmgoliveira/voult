@@ -3,5 +3,6 @@ packages:
   - packages/*
 allowBuilds:
   esbuild: true
+  cbor-extract: false
 minimumReleaseAgeExclude:
   - eslint@10.14.0
