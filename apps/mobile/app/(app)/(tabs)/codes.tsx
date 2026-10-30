@@ -1,15 +1,16 @@
 import { Ionicons } from '@expo/vector-icons';
 import { matchesText } from '@voult/core';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { FlatList, Pressable, Text, TextInput, View } from 'react-native';
+import { FlatList, Pressable, Text, View } from 'react-native';
 import { useApp } from '../../../src/lib/app-store';
-import { Empty, Screen } from '../../../src/ui/kit';
+import { Empty, Glass, ItemAvatar, Screen, SearchBar } from '../../../src/ui/kit';
 import { TotpCode } from '../../../src/ui/items';
 import { useTheme } from '../../../src/ui/theme';
 
 export default function Codes() {
-  const { c } = useTheme();
+  const { c, brand } = useTheme();
   const items = useApp((s) => s.items);
   const [text, setText] = useState('');
 
@@ -30,76 +31,85 @@ export default function Codes() {
 
   return (
     <Screen>
+      <View style={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 12, gap: 4 }}>
+        <Text style={{ color: c.foreground, fontSize: 26, fontWeight: '800', letterSpacing: -0.5 }}>
+          Codes
+        </Text>
+        <Text style={{ color: c.muted, fontSize: 13 }}>Tap a code to copy it</Text>
+      </View>
       <View
         style={{
           flexDirection: 'row',
-          gap: 8,
-          padding: 12,
-          borderBottomWidth: 1,
-          borderBottomColor: c.border,
+          alignItems: 'center',
+          gap: 10,
+          paddingHorizontal: 16,
+          paddingBottom: 12,
         }}
       >
-        <View
-          style={{
-            flex: 1,
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 8,
-            borderWidth: 1,
-            borderColor: c.border,
-            borderRadius: 12,
-            paddingHorizontal: 12,
-          }}
-        >
-          <Ionicons name="search" size={18} color={c.muted} />
-          <TextInput
-            accessibilityLabel="Search codes"
-            placeholder="Search codes"
-            placeholderTextColor={c.muted}
-            value={text}
-            onChangeText={setText}
-            autoCapitalize="none"
-            style={{ flex: 1, color: c.foreground, fontSize: 16, paddingVertical: 10 }}
-          />
-        </View>
+        <SearchBar
+          accessibilityLabel="Search codes"
+          placeholder="Search codes"
+          value={text}
+          onChangeText={setText}
+        />
         <Pressable
           testID="scan-qr"
           accessibilityRole="button"
           accessibilityLabel="Scan QR code"
           onPress={() => router.push('/scan')}
           style={{
-            width: 44,
-            height: 44,
-            borderRadius: 12,
-            backgroundColor: c.primary,
-            alignItems: 'center',
-            justifyContent: 'center',
+            shadowColor: brand[0],
+            shadowOpacity: 0.5,
+            shadowRadius: 12,
+            shadowOffset: { width: 0, height: 6 },
+            elevation: 5,
           }}
         >
-          <Ionicons name="qr-code-outline" size={22} color={c.primaryForeground} />
+          <LinearGradient
+            colors={[brand[0], brand[1]]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: 15,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Ionicons name="qr-code-outline" size={22} color="#fff" />
+          </LinearGradient>
         </Pressable>
       </View>
       {rows.length === 0 ? (
-        <Empty title="No 2FA codes yet" body="Scan a QR code or add a secret key." />
+        <Empty
+          title="No 2FA codes yet"
+          body="Scan a QR code or add a secret key."
+          icon="qr-code-outline"
+        />
       ) : (
         <FlatList
           data={rows}
           keyExtractor={(r) => r.v.id}
+          contentContainerStyle={{ paddingBottom: 120 }}
           renderItem={({ item: r }) => (
-            <View
-              style={{ padding: 16, gap: 6, borderBottomWidth: 1, borderBottomColor: c.border }}
-            >
-              <Text
+            <Glass style={{ marginHorizontal: 16, marginBottom: 10, padding: 14, gap: 10 }}>
+              <Pressable
                 accessibilityRole="button"
                 onPress={() => router.push({ pathname: '/item/[id]', params: { id: r.v.id } })}
-                numberOfLines={1}
-                style={{ color: c.muted, fontSize: 13 }}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
               >
-                {r.v.item.title}
-                {r.totp.account ? ` · ${r.totp.account}` : ''}
-              </Text>
+                <ItemAvatar type={r.v.item.type} title={r.v.item.title} size={26} />
+                <Text
+                  numberOfLines={1}
+                  style={{ flex: 1, color: c.muted, fontSize: 13, fontWeight: '600' }}
+                >
+                  {r.v.item.title}
+                  {r.totp.account ? ` · ${r.totp.account}` : ''}
+                </Text>
+              </Pressable>
               <TotpCode entry={r.totp} showNext />
-            </View>
+            </Glass>
           )}
         />
       )}

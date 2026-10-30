@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { ScrollView } from 'react-native';
 import { BiometricCanceledError } from '../modules/voult-native';
 import { friendlyError, useApp } from '../src/lib/app-store';
 import { getRuntime } from '../src/lib/runtime';
 import { useAction } from '../src/ui/hooks';
-import { Body, Button, ErrorText, Field, Heading, Screen } from '../src/ui/kit';
+import { Button, ErrorText, Field, Screen, AuthHero, Glass } from '../src/ui/kit';
 
 export default function Unlock() {
   const { email, quick, refresh } = useApp();
@@ -75,72 +75,70 @@ export default function Unlock() {
         contentContainerStyle={{ padding: 24, gap: 16 }}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={{ gap: 4, paddingTop: 32 }}>
-          <Heading>Vault locked</Heading>
-          <Body muted>{email}</Body>
-        </View>
+        <AuthHero title="Vault locked" subtitle={email} />
+        <Glass strong radius={26} style={{ padding: 20, gap: 16 }}>
+          {mode === 'pin' && quick.pin ? (
+            <>
+              <Field
+                label="PIN"
+                testID="pin"
+                value={pin}
+                onChangeText={setPin}
+                secret
+                keyboardType="number-pad"
+                autoFocus
+                onSubmitEditing={submitPin}
+              />
+              <ErrorText>{error}</ErrorText>
+              <Button
+                testID="unlock-pin"
+                label="Unlock"
+                busy={busy}
+                disabled={!pin}
+                onPress={submitPin}
+              />
+            </>
+          ) : (
+            <>
+              <Field
+                label="Master password"
+                testID="password"
+                value={password}
+                onChangeText={setPassword}
+                secret
+                autoComplete="current-password"
+                onSubmitEditing={submitPassword}
+              />
+              <ErrorText>{error}</ErrorText>
+              <Button
+                testID="unlock-password"
+                label="Unlock"
+                busy={busy}
+                disabled={!password}
+                onPress={submitPassword}
+              />
+            </>
+          )}
 
-        {mode === 'pin' && quick.pin ? (
-          <>
-            <Field
-              label="PIN"
-              testID="pin"
-              value={pin}
-              onChangeText={setPin}
-              secret
-              keyboardType="number-pad"
-              autoFocus
-              onSubmitEditing={submitPin}
-            />
-            <ErrorText>{error}</ErrorText>
+          {quick.biometric && (
             <Button
-              testID="unlock-pin"
-              label="Unlock"
-              busy={busy}
-              disabled={!pin}
-              onPress={submitPin}
+              variant="secondary"
+              icon="finger-print"
+              label="Use biometrics"
+              onPress={unlockWithBiometric}
             />
-          </>
-        ) : (
-          <>
-            <Field
-              label="Master password"
-              testID="password"
-              value={password}
-              onChangeText={setPassword}
-              secret
-              autoComplete="current-password"
-              onSubmitEditing={submitPassword}
-            />
-            <ErrorText>{error}</ErrorText>
+          )}
+          {quick.pin && (
             <Button
-              testID="unlock-password"
-              label="Unlock"
-              busy={busy}
-              disabled={!password}
-              onPress={submitPassword}
+              variant="ghost"
+              label={mode === 'pin' ? 'Use master password' : 'Use PIN'}
+              onPress={() => {
+                setError(null);
+                setMode(mode === 'pin' ? 'password' : 'pin');
+              }}
             />
-          </>
-        )}
-
-        {quick.biometric && (
-          <Button
-            variant="secondary"
-            icon="finger-print"
-            label="Use biometrics"
-            onPress={unlockWithBiometric}
-          />
-        )}
-        {quick.pin && (
-          <Button
-            variant="ghost"
-            label={mode === 'pin' ? 'Use master password' : 'Use PIN'}
-            onPress={() => {
-              setError(null);
-              setMode(mode === 'pin' ? 'password' : 'pin');
-            }}
-          />
-        )}
+          )}
+        </Glass>
       </ScrollView>
     </Screen>
   );

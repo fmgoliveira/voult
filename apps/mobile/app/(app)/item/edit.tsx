@@ -13,7 +13,7 @@ import { KeyboardAvoidingView, Platform, ScrollView, Switch, Text, View } from '
 import { useApp } from '../../../src/lib/app-store';
 import { getRuntime } from '../../../src/lib/runtime';
 import { useAction } from '../../../src/ui/hooks';
-import { Button, ErrorText, Field, IconButton, Screen } from '../../../src/ui/kit';
+import { Button, ErrorText, Field, IconButton, Screen, TypeTile } from '../../../src/ui/kit';
 import { TYPE_LABEL } from '../../../src/ui/items';
 import { useTheme } from '../../../src/ui/theme';
 
@@ -80,27 +80,22 @@ export default function EditItem() {
 
   return (
     <Screen>
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          padding: 8,
-          borderBottomWidth: 1,
-          borderBottomColor: c.border,
-        }}
-      >
+      <View style={{ flexDirection: 'row', alignItems: 'center', padding: 12, gap: 8 }}>
         <Button variant="ghost" label="Cancel" onPress={() => router.back()} />
-        <Text
+        <View
           style={{
             flex: 1,
-            textAlign: 'center',
-            color: c.foreground,
-            fontWeight: '600',
-            fontSize: 16,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
           }}
         >
-          {existing ? 'Edit' : 'New'} {TYPE_LABEL[draft.type].toLowerCase()}
-        </Text>
+          <TypeTile type={draft.type} size={28} />
+          <Text style={{ color: c.foreground, fontWeight: '800', fontSize: 16 }}>
+            {existing ? 'Edit' : 'New'} {TYPE_LABEL[draft.type].toLowerCase()}
+          </Text>
+        </View>
         <Button testID="save" label="Save" busy={busy} onPress={save} />
       </View>
       <KeyboardAvoidingView

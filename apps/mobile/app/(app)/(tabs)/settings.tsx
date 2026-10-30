@@ -144,7 +144,15 @@ export default function SettingsTab() {
 
   return (
     <Screen>
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }}>
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 120 }}>
+        <View style={{ paddingTop: 8, gap: 4 }}>
+          <Text
+            style={{ color: c.foreground, fontSize: 26, fontWeight: '800', letterSpacing: -0.5 }}
+          >
+            Settings
+          </Text>
+          <Text style={{ color: c.muted, fontSize: 13 }}>Security, sync and appearance</Text>
+        </View>
         <Section title="Account">
           <Row label="Signed in as">
             <Text testID="account-email" style={{ color: c.muted }} numberOfLines={1}>

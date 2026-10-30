@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { ScrollView } from 'react-native';
 import { useApp } from '../src/lib/app-store';
 import { getRuntime } from '../src/lib/runtime';
 import { useAction } from '../src/ui/hooks';
-import { Body, Button, ErrorText, Field, Heading, Screen } from '../src/ui/kit';
+import { Button, ErrorText, Field, Screen, AuthHero, Glass } from '../src/ui/kit';
 
 export default function Reauth() {
   const { email, refresh } = useApp();
@@ -16,39 +16,41 @@ export default function Reauth() {
         contentContainerStyle={{ padding: 24, gap: 16 }}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={{ gap: 4, paddingTop: 32 }}>
-          <Heading>Session expired</Heading>
-          <Body muted>Sign in again as {email}. Your local changes are kept.</Body>
-        </View>
-        <Field
-          label="Master password"
-          value={password}
-          onChangeText={setPassword}
-          secret
-          autoFocus
+        <AuthHero
+          title="Session expired"
+          subtitle={`Sign in again as ${email}. Your local changes are kept.`}
         />
-        <ErrorText>{error}</ErrorText>
-        <Button
-          label="Sign in"
-          busy={busy}
-          disabled={!password}
-          onPress={() =>
-            void run(async () => {
-              await (await getRuntime()).accounts.reauthenticate(password);
-              await refresh();
-            })
-          }
-        />
-        <Button
-          variant="ghost"
-          label="Sign out and remove local data"
-          onPress={() =>
-            void run(async () => {
-              await (await getRuntime()).accounts.signOut();
-              await refresh();
-            })
-          }
-        />
+        <Glass strong radius={26} style={{ padding: 20, gap: 16 }}>
+          <Field
+            label="Master password"
+            value={password}
+            onChangeText={setPassword}
+            secret
+            autoFocus
+          />
+          <ErrorText>{error}</ErrorText>
+          <Button
+            label="Sign in"
+            busy={busy}
+            disabled={!password}
+            onPress={() =>
+              void run(async () => {
+                await (await getRuntime()).accounts.reauthenticate(password);
+                await refresh();
+              })
+            }
+          />
+          <Button
+            variant="ghost"
+            label="Sign out and remove local data"
+            onPress={() =>
+              void run(async () => {
+                await (await getRuntime()).accounts.signOut();
+                await refresh();
+              })
+            }
+          />
+        </Glass>
       </ScrollView>
     </Screen>
   );

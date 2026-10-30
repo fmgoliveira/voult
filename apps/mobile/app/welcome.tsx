@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useApp } from '../src/lib/app-store';
 import { getRuntime } from '../src/lib/runtime';
 import { DEFAULT_SERVER_URL } from '../src/lib/settings';
 import { useAction } from '../src/ui/hooks';
-import { Body, Button, ErrorText, Field, Heading, Screen } from '../src/ui/kit';
+import { Button, ErrorText, Field, Screen, AuthHero, Glass } from '../src/ui/kit';
 
 const MIN_PASSWORD = 12;
 
@@ -41,63 +41,65 @@ export default function Welcome() {
           contentContainerStyle={{ padding: 24, gap: 16 }}
           keyboardShouldPersistTaps="handled"
         >
-          <View style={{ gap: 4, paddingTop: 16 }}>
-            <Heading>{mode === 'create' ? 'Create your vault' : 'Sign in'}</Heading>
-            <Body muted>Zero-knowledge: your master password never leaves this device.</Body>
-          </View>
-          <Field
-            label="Email"
-            testID="email"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoComplete="email"
+          <AuthHero
+            title={mode === 'create' ? 'Create your vault' : 'Sign in'}
+            subtitle="Zero-knowledge: your master password never leaves this device."
           />
-          <Field
-            label="Master password"
-            testID="password"
-            value={password}
-            onChangeText={setPassword}
-            secret
-            autoComplete={mode === 'create' ? 'new-password' : 'current-password'}
-            hint={
-              mode === 'create'
-                ? `At least ${MIN_PASSWORD} characters. It cannot be reset.`
-                : undefined
-            }
-          />
-          {mode === 'create' && (
+          <Glass strong radius={26} style={{ padding: 20, gap: 16 }}>
             <Field
-              label="Confirm master password"
-              testID="confirm"
-              value={confirm}
-              onChangeText={setConfirm}
-              secret
+              label="Email"
+              testID="email"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoComplete="email"
             />
-          )}
-          <Field
-            label="Server URL"
-            testID="server"
-            value={serverUrl}
-            onChangeText={setServerUrl}
-            keyboardType="url"
-          />
-          <ErrorText>{error}</ErrorText>
-          <Button
-            testID="submit"
-            label={mode === 'create' ? 'Create account' : 'Sign in'}
-            busy={busy}
-            disabled={!email || !password}
-            onPress={submit}
-          />
-          <Button
-            variant="ghost"
-            label={mode === 'create' ? 'I already have an account' : 'Create a new account'}
-            onPress={() => {
-              setError(null);
-              setMode(mode === 'create' ? 'signin' : 'create');
-            }}
-          />
+            <Field
+              label="Master password"
+              testID="password"
+              value={password}
+              onChangeText={setPassword}
+              secret
+              autoComplete={mode === 'create' ? 'new-password' : 'current-password'}
+              hint={
+                mode === 'create'
+                  ? `At least ${MIN_PASSWORD} characters. It cannot be reset.`
+                  : undefined
+              }
+            />
+            {mode === 'create' && (
+              <Field
+                label="Confirm master password"
+                testID="confirm"
+                value={confirm}
+                onChangeText={setConfirm}
+                secret
+              />
+            )}
+            <Field
+              label="Server URL"
+              testID="server"
+              value={serverUrl}
+              onChangeText={setServerUrl}
+              keyboardType="url"
+            />
+            <ErrorText>{error}</ErrorText>
+            <Button
+              testID="submit"
+              label={mode === 'create' ? 'Create account' : 'Sign in'}
+              busy={busy}
+              disabled={!email || !password}
+              onPress={submit}
+            />
+            <Button
+              variant="ghost"
+              label={mode === 'create' ? 'I already have an account' : 'Create a new account'}
+              onPress={() => {
+                setError(null);
+                setMode(mode === 'create' ? 'signin' : 'create');
+              }}
+            />
+          </Glass>
         </ScrollView>
       </KeyboardAvoidingView>
     </Screen>

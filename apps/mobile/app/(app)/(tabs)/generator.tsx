@@ -7,7 +7,7 @@ import {
 import { useMemo, useState } from 'react';
 import { ScrollView, Switch, Text, View } from 'react-native';
 import { copySecret } from '../../../src/lib/clipboard';
-import { Chip, Field, IconButton, Screen } from '../../../src/ui/kit';
+import { Chip, Field, Glass, IconButton, Screen } from '../../../src/ui/kit';
 import { useTheme } from '../../../src/ui/theme';
 
 function Stepper({
@@ -82,25 +82,47 @@ export default function Generator() {
 
   return (
     <Screen>
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 4,
-            padding: 14,
-            borderRadius: 12,
-            backgroundColor: c.surface,
-            borderWidth: 1,
-            borderColor: c.border,
-          }}
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 120, gap: 16 }}>
+        <View style={{ gap: 4 }}>
+          <Text
+            style={{ color: c.foreground, fontSize: 26, fontWeight: '800', letterSpacing: -0.5 }}
+          >
+            Generator
+          </Text>
+          <Text style={{ color: c.muted, fontSize: 13 }}>Strong passwords and passphrases</Text>
+        </View>
+        <Glass
+          strong
+          radius={22}
+          style={{ flexDirection: 'row', alignItems: 'center', gap: 4, padding: 16 }}
         >
           <Text
             testID="generated"
             selectable
-            style={{ flex: 1, fontFamily: 'monospace', fontSize: 17, color: c.foreground }}
+            style={{
+              flex: 1,
+              fontFamily: 'monospace',
+              fontSize: 18,
+              lineHeight: 26,
+              color: c.foreground,
+            }}
           >
-            {value || 'Select at least one option'}
+            {value
+              ? [...value].map((ch, i) => (
+                  <Text
+                    key={i}
+                    style={{
+                      color: /[0-9]/.test(ch)
+                        ? c.primary
+                        : /[^A-Za-z0-9]/.test(ch)
+                          ? c.accent
+                          : c.foreground,
+                    }}
+                  >
+                    {ch}
+                  </Text>
+                ))
+              : 'Select at least one option'}
           </Text>
           <IconButton icon="refresh" label="Regenerate" onPress={() => setNonce(nonce + 1)} />
           <IconButton
@@ -108,7 +130,7 @@ export default function Generator() {
             label="Copy generated password"
             onPress={() => value && copySecret(value, 'Password copied')}
           />
-        </View>
+        </Glass>
         <View style={{ flexDirection: 'row', gap: 8 }}>
           <Chip label="Random" active={mode === 'random'} onPress={() => setMode('random')} />
           <Chip

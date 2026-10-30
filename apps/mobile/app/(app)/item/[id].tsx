@@ -5,7 +5,15 @@ import { Alert, Linking, ScrollView, Text, View } from 'react-native';
 import { useApp } from '../../../src/lib/app-store';
 import { copySecret } from '../../../src/lib/clipboard';
 import { getRuntime } from '../../../src/lib/runtime';
-import { Body, Button, IconButton, Screen } from '../../../src/ui/kit';
+import {
+  Body,
+  Button,
+  Glass,
+  GlassIconButton,
+  IconButton,
+  ItemAvatar,
+  Screen,
+} from '../../../src/ui/kit';
 import { TYPE_LABEL, TotpCode } from '../../../src/ui/items';
 import { useTheme } from '../../../src/ui/theme';
 
@@ -14,12 +22,14 @@ function Line({
   value,
   secret,
   mono,
+  last,
   children,
 }: {
   label: string;
   value: string;
   secret?: boolean;
   mono?: boolean;
+  last?: boolean;
   children?: ReactNode;
 }) {
   const { c } = useTheme();
@@ -30,13 +40,16 @@ function Line({
       style={{
         flexDirection: 'row',
         alignItems: 'center',
-        borderBottomWidth: 1,
-        borderBottomColor: c.border,
+        paddingHorizontal: 16,
         paddingVertical: 10,
+        borderBottomWidth: last ? 0 : 1,
+        borderBottomColor: c.border,
       }}
     >
-      <View style={{ flex: 1 }}>
-        <Text style={{ color: c.muted, fontSize: 12 }}>{label}</Text>
+      <View style={{ flex: 1, gap: 2 }}>
+        <Text style={{ color: c.muted, fontSize: 11, fontWeight: '700', letterSpacing: 0.4 }}>
+          {label}
+        </Text>
         {children ?? (
           <Text
             testID={`field-${label.toLowerCase()}`}
@@ -76,10 +89,10 @@ export default function ItemDetail() {
     // Deleted or purged elsewhere while this screen was open.
     return (
       <Screen>
-        <Body muted style={{ padding: 24 }}>
-          This item is no longer available.
-        </Body>
-        <Button label="Back" onPress={() => router.back()} />
+        <View style={{ padding: 24, gap: 16 }}>
+          <Body muted>This item is no longer available.</Body>
+          <Button label="Back" onPress={() => router.back()} />
+        </View>
       </Screen>
     );
   }
@@ -93,127 +106,136 @@ export default function ItemDetail() {
 
   return (
     <Screen>
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          padding: 8,
-          borderBottomWidth: 1,
-          borderBottomColor: c.border,
-        }}
-      >
-        <IconButton
-          icon="arrow-back"
-          label="Back"
-          onPress={() => router.back()}
-          color={c.foreground}
-        />
-        <View style={{ flex: 1 }}>
-          <Text
-            testID="detail-title"
-            numberOfLines={1}
-            style={{ color: c.foreground, fontSize: 18, fontWeight: '700' }}
-          >
-            {i.title || 'Untitled'}
-          </Text>
-          <Text style={{ color: c.muted, fontSize: 12 }}>
-            {TYPE_LABEL[i.type]}
-            {view.dirty ? ' · not synced yet' : ''}
-          </Text>
-        </View>
+      <View style={{ flexDirection: 'row', alignItems: 'center', padding: 12 }}>
+        <GlassIconButton icon="arrow-back" label="Back" onPress={() => router.back()} />
+        <View style={{ flex: 1 }} />
         {!trashed && (
-          <IconButton
+          <GlassIconButton
             icon={i.favorite ? 'star' : 'star-outline'}
             label={i.favorite ? 'Remove from favourites' : 'Add to favourites'}
-            color={i.favorite ? c.primary : c.muted}
+            color={i.favorite ? '#fbbf24' : c.foreground}
             onPress={async () =>
-              (await getRuntime()).vault
-                .saveItem(view.vaultId, { ...i, favorite: !i.favorite }, view.id)
-                .then(() => undefined)
+              void (await getRuntime()).vault.saveItem(
+                view.vaultId,
+                { ...i, favorite: !i.favorite },
+                view.id,
+              )
             }
           />
         )}
       </View>
 
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}>
-        {i.type === 'login' && (
-          <>
-            <Line label="Username" value={i.username} />
-            <Line label="Email" value={i.email} />
-            <Line label="Password" value={i.password} secret />
-            {i.totp ? (
-              <Line label="One-time code" value="">
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24, gap: 12 }}>
+        <View style={{ alignItems: 'center', gap: 6, paddingBottom: 4 }}>
+          <ItemAvatar type={i.type} title={i.title} size={72} />
+          <Text
+            testID="detail-title"
+            numberOfLines={2}
+            style={{
+              color: c.foreground,
+              fontSize: 22,
+              fontWeight: '800',
+              textAlign: 'center',
+              letterSpacing: -0.4,
+            }}
+          >
+            {i.title || 'Untitled'}
+          </Text>
+          <Text style={{ color: c.muted, fontSize: 13 }}>
+            {TYPE_LABEL[i.type]}
+            {view.dirty ? ' · not synced yet' : ''}
+          </Text>
+        </View>
+
+        <Glass>
+          {i.type === 'login' && (
+            <>
+              <Line label="Username" value={i.username} />
+              <Line label="Email" value={i.email} />
+              <Line label="Password" value={i.password} secret />
+              {i.totp ? (
+                <Line label="One-time code" value="">
+                  <TotpCode entry={i.totp} showNext />
+                </Line>
+              ) : null}
+              {i.urls.map((u, n) => (
+                <Line key={n} label={n === 0 ? 'Website' : `Website ${n + 1}`} value={u.url}>
+                  <Text
+                    accessibilityRole="link"
+                    onPress={() =>
+                      void Linking.openURL(u.url.includes('://') ? u.url : `https://${u.url}`)
+                    }
+                    style={{ color: c.primary, fontSize: 16, fontWeight: '600' }}
+                  >
+                    {u.url}
+                  </Text>
+                </Line>
+              ))}
+              {i.customFields.map((f, n) =>
+                f.type === 'totp' ? (
+                  <Line key={n} label={f.name} value="">
+                    <TotpCode entry={f.value} />
+                  </Line>
+                ) : (
+                  <Line key={n} label={f.name} value={f.value} secret={f.type === 'hidden'} />
+                ),
+              )}
+            </>
+          )}
+          {i.type === 'card' && (
+            <>
+              <Line label="Cardholder" value={i.holder} />
+              <Line label="Number" value={i.number} mono />
+              <Line label="Expiry" value={i.expiry} />
+              <Line label="CVV" value={i.cvv} secret />
+              <Line label="PIN" value={i.pin} secret last />
+            </>
+          )}
+          {i.type === 'identity' && (
+            <>
+              <Line label="Full name" value={i.fullName} />
+              <Line label="Email" value={i.email} />
+              <Line label="Phone" value={i.phone} />
+              <Line label="Address" value={i.address} />
+              <Line label="Birthday" value={i.birthday} last />
+            </>
+          )}
+          {i.type === 'totp' && (
+            <>
+              <Line label="Issuer" value={i.totp.issuer} />
+              <Line label="Account" value={i.totp.account} />
+              <Line label="One-time code" value="" last>
                 <TotpCode entry={i.totp} showNext />
               </Line>
-            ) : null}
-            {i.urls.map((u, n) => (
-              <Line key={n} label={n === 0 ? 'Website' : `Website ${n + 1}`} value={u.url}>
-                <Text
-                  accessibilityRole="link"
-                  onPress={() =>
-                    void Linking.openURL(u.url.includes('://') ? u.url : `https://${u.url}`)
-                  }
-                  style={{ color: c.primary, fontSize: 16, textDecorationLine: 'underline' }}
-                >
-                  {u.url}
-                </Text>
-              </Line>
-            ))}
-            {i.customFields.map((f, n) =>
-              f.type === 'totp' ? (
-                <Line key={n} label={f.name} value="">
-                  <TotpCode entry={f.value} />
-                </Line>
-              ) : (
-                <Line key={n} label={f.name} value={f.value} secret={f.type === 'hidden'} />
-              ),
-            )}
-          </>
-        )}
-        {i.type === 'card' && (
-          <>
-            <Line label="Cardholder" value={i.holder} />
-            <Line label="Number" value={i.number} mono />
-            <Line label="Expiry" value={i.expiry} />
-            <Line label="CVV" value={i.cvv} secret />
-            <Line label="PIN" value={i.pin} secret />
-          </>
-        )}
-        {i.type === 'identity' && (
-          <>
-            <Line label="Full name" value={i.fullName} />
-            <Line label="Email" value={i.email} />
-            <Line label="Phone" value={i.phone} />
-            <Line label="Address" value={i.address} />
-            <Line label="Birthday" value={i.birthday} />
-          </>
-        )}
-        {i.type === 'totp' && (
-          <>
-            <Line label="Issuer" value={i.totp.issuer} />
-            <Line label="Account" value={i.totp.account} />
-            <Line label="One-time code" value="">
-              <TotpCode entry={i.totp} showNext />
-            </Line>
-          </>
-        )}
+            </>
+          )}
+        </Glass>
+
         {i.notes ? (
-          <View style={{ paddingVertical: 10 }}>
-            <Text style={{ color: c.muted, fontSize: 12 }}>Notes</Text>
+          <Glass style={{ padding: 16, gap: 4 }}>
+            <Text style={{ color: c.muted, fontSize: 11, fontWeight: '700', letterSpacing: 0.4 }}>
+              NOTES
+            </Text>
             <Text testID="field-notes" selectable style={{ color: c.foreground, fontSize: 16 }}>
               {i.notes}
             </Text>
-          </View>
+          </Glass>
         ) : null}
+
         {i.type === 'login' && i.passkeys.length > 0 && (
-          <View accessibilityLabel="Passkeys" style={{ paddingVertical: 10, gap: 6 }}>
-            <Text style={{ color: c.muted, fontSize: 12 }}>Passkeys</Text>
+          <Glass style={{ padding: 16, gap: 8 }}>
+            <Text
+              accessibilityLabel="Passkeys"
+              style={{ color: c.muted, fontSize: 11, fontWeight: '700', letterSpacing: 0.4 }}
+            >
+              PASSKEYS
+            </Text>
             {i.passkeys.map((k) => (
               <View
                 key={k.credentialId}
-                style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}
+                style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}
               >
-                <Ionicons name="key-outline" size={16} color={c.muted} />
+                <Ionicons name="key" size={16} color={c.primary} />
                 <Text style={{ flex: 1, color: c.foreground }} numberOfLines={1}>
                   {k.rpName || k.rpId}
                   {k.userName ? ` · ${k.userName}` : ''}
@@ -223,12 +245,22 @@ export default function ItemDetail() {
                 </Text>
               </View>
             ))}
-          </View>
+          </Glass>
         )}
+
         {i.type === 'login' && i.passwordHistory.length > 0 && (
-          <View style={{ paddingVertical: 10 }}>
-            <Text style={{ color: c.muted, fontSize: 12 }}>
-              Password history ({i.passwordHistory.length})
+          <Glass>
+            <Text
+              style={{
+                color: c.muted,
+                fontSize: 11,
+                fontWeight: '700',
+                letterSpacing: 0.4,
+                padding: 16,
+                paddingBottom: 4,
+              }}
+            >
+              PASSWORD HISTORY ({i.passwordHistory.length})
             </Text>
             {i.passwordHistory.map((h, n) => (
               <Line
@@ -236,21 +268,14 @@ export default function ItemDetail() {
                 label={new Date(h.changedAt).toLocaleString()}
                 value={h.password}
                 secret
+                last={n === i.passwordHistory.length - 1}
               />
             ))}
-          </View>
+          </Glass>
         )}
       </ScrollView>
 
-      <View
-        style={{
-          flexDirection: 'row',
-          gap: 8,
-          padding: 12,
-          borderTopWidth: 1,
-          borderTopColor: c.border,
-        }}
-      >
+      <View style={{ flexDirection: 'row', gap: 10, padding: 14 }}>
         {trashed ? (
           <>
             <View style={{ flex: 1 }}>
@@ -283,6 +308,7 @@ export default function ItemDetail() {
             <View style={{ flex: 1 }}>
               <Button
                 testID="edit"
+                icon="create-outline"
                 label="Edit"
                 onPress={() => router.push({ pathname: '/item/edit', params: { id: view.id } })}
               />

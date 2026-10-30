@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### UI redesign (extension + Android)
+
+- New "soft glass" design system in `@voult/ui-tokens`: aurora background, translucent surfaces with hairline borders and real `backdrop-filter` blur on the web, indigo→violet brand gradient, per-type gradient icon tiles and letter avatars, rounded cards, floating glass tab bar, countdown rings for TOTP, copy toasts
+- Extension: every popup screen, the in-page autofill dropdown/save prompt and the passkey picker restyled; Android app uses the same visual language (translucent fills over a radial-gradient aurora, since React Native has no native backdrop blur)
+- `docs/ANDROID.md` now has a step-by-step Windows build-and-test guide with a smoke-test checklist
+
 ### Phase 6 — Android app MVP
 
 - `@voult/core` gains a platform-neutral client: `ClientStore` contract, HTTP with rotating refresh, sync engine (push/pull/409 merge), vault client, account service, search + form helpers; pluggable Argon2id. The browser extension now runs on it (e2e unchanged and green)
