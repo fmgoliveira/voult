@@ -17,6 +17,16 @@ interface Device {
   current: boolean;
 }
 
+const LF = String.fromCharCode(10);
+const lines = (v: string) => [
+  ...new Set(
+    v
+      .split(/\r?\n/)
+      .map((l) => l.trim().toLowerCase())
+      .filter(Boolean),
+  ),
+];
+
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="space-y-3 border-b border-border py-4">
@@ -216,6 +226,49 @@ export function SettingsTab({ settings, status }: { settings: Settings; status: 
         <Button variant="secondary" onClick={() => void lock()}>
           Lock now
         </Button>
+      </Section>
+
+      <Section title="Autofill & passkeys">
+        <Row label="Autofill logins">
+          <Switch
+            label="Autofill logins"
+            checked={settings.autofillEnabled}
+            onChange={(v) => set({ autofillEnabled: v })}
+          />
+        </Row>
+        <Row label="Handle passkeys">
+          <Switch
+            label="Handle passkeys"
+            checked={settings.passkeysEnabled}
+            onChange={(v) => set({ passkeysEnabled: v })}
+          />
+        </Row>
+        <Field label="Never offer to save on (one site per line)">
+          {(id) => (
+            <textarea
+              id={id}
+              rows={2}
+              defaultValue={settings.neverSave.join(LF)}
+              onBlur={(e) => set({ neverSave: lines(e.target.value) })}
+              className="w-full rounded-lg border border-border bg-bg p-2 text-sm"
+            />
+          )}
+        </Field>
+        <Field label="Never use passkeys on (one site per line)">
+          {(id) => (
+            <textarea
+              id={id}
+              rows={2}
+              defaultValue={settings.passkeyOptOut.join(LF)}
+              onBlur={(e) => set({ passkeyOptOut: lines(e.target.value) })}
+              className="w-full rounded-lg border border-border bg-bg p-2 text-sm"
+            />
+          )}
+        </Field>
+        <p className="text-xs text-muted">
+          Shortcut: Ctrl/Cmd+Shift+L fills the login on the current page. Change it in your
+          browser's extension shortcut settings.
+        </p>
       </Section>
 
       <Section title="Appearance">

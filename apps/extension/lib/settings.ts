@@ -9,6 +9,12 @@ export interface Settings {
   theme: 'system' | 'light' | 'dark';
   /** Offer a memory-only PIN for quick unlock. */
   pinEnabled: boolean;
+  autofillEnabled: boolean;
+  /** Hosts for which the save/update prompt is never shown. */
+  neverSave: string[];
+  passkeysEnabled: boolean;
+  /** rpIds / hosts where Voult must not intercept passkey requests. */
+  passkeyOptOut: string[];
 }
 
 export const DEFAULT_SERVER_URL = 'https://voult.franciscoliveira.com';
@@ -19,6 +25,10 @@ export const DEFAULT_SETTINGS: Settings = {
   clipboardClearSeconds: 30,
   theme: 'system',
   pinEnabled: false,
+  autofillEnabled: true,
+  neverSave: [],
+  passkeysEnabled: true,
+  passkeyOptOut: [],
 };
 
 const item = storage.defineItem<Settings>('local:settings', { fallback: DEFAULT_SETTINGS });

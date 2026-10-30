@@ -4,13 +4,17 @@ import {
   type PassphraseOptions,
   type RandomOptions,
 } from '@voult/core';
-import { Copy, RefreshCw, Plus } from 'lucide-react';
+import { Copy, RefreshCw, Plus, ScanLine } from 'lucide-react';
+import type { Totp } from '@voult/core';
 import { useMemo, useState } from 'react';
 import { TotpCode } from '../components/Totp';
 import { Button, Empty, Field, IconButton, Input } from '../components/ui';
 import { copySecret } from '../lib/clipboard';
 import { useNav } from '../lib/nav';
 import { matchesText } from '../lib/search';
+import { scanActiveTab } from '../lib/qr';
+import { saveItem } from '../lib/vault';
+import { useAsyncAction } from '../lib/hooks';
 import type { ItemView } from '../lib/vault';
 
 export function Generator() {
@@ -150,8 +154,67 @@ export function Generator() {
   );
 }
 
-export function Authenticator({ items }: { items: ItemView[] }) {
+function ScanResult({
+  found,
+  vaultId,
+  onDone,
+}: {
+  found: Totp[];
+  vaultId: string;
+  onDone: () => void;
+}) {
+  const { busy, error, run } = useAsyncAction();
+  return (
+    <div className="space-y-2 border-b border-border bg-surface p-3" role="status">
+      <p className="font-medium">
+        Found {found.length} code{found.length === 1 ? '' : 's'}
+      </p>
+      <ul className="text-xs text-muted">
+        {found.map((t, i) => (
+          <li key={i}>{[t.issuer, t.account].filter(Boolean).join(' · ') || 'Unnamed'}</li>
+        ))}
+      </ul>
+      {error && (
+        <p role="alert" className="text-xs text-danger">
+          {error}
+        </p>
+      )}
+      <div className="flex gap-2">
+        <Button
+          disabled={busy}
+          onClick={() =>
+            void run(async () => {
+              for (const t of found) {
+                const now = Date.now();
+                await saveItem(vaultId, {
+                  type: 'totp',
+                  title: t.issuer || t.account || 'Authenticator',
+                  notes: '',
+                  favorite: false,
+                  pinned: false,
+                  createdAt: now,
+                  updatedAt: now,
+                  totp: t,
+                });
+              }
+              onDone();
+            })
+          }
+        >
+          Add {found.length > 1 ? 'all' : ''}
+        </Button>
+        <Button variant="ghost" onClick={onDone}>
+          Dismiss
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+export function Authenticator({ items, vaultId }: { items: ItemView[]; vaultId?: string }) {
   const [text, setText] = useState('');
+  const [found, setFound] = useState<Totp[] | null>(null);
+  const scan = useAsyncAction();
   const { setTab, open } = useNav();
   const rows = useMemo(
     () =>
@@ -179,6 +242,16 @@ export function Authenticator({ items }: { items: ItemView[] }) {
           onChange={(e) => setText(e.target.value)}
         />
         <Button
+          variant="secondary"
+          aria-label="Scan QR code on this page"
+          title="Scan QR code on this page"
+          className="w-9 px-0"
+          disabled={scan.busy}
+          onClick={() => void scan.run(async () => setFound(await scanActiveTab()))}
+        >
+          <ScanLine size={18} />
+        </Button>
+        <Button
           aria-label="Add 2FA code"
           className="w-9 px-0"
           onClick={() => {
@@ -189,6 +262,14 @@ export function Authenticator({ items }: { items: ItemView[] }) {
           <Plus size={18} />
         </Button>
       </div>
+      {scan.error && (
+        <p role="alert" className="border-b border-border p-3 text-xs text-danger">
+          {scan.error}
+        </p>
+      )}
+      {found && vaultId && (
+        <ScanResult found={found} vaultId={vaultId} onDone={() => setFound(null)} />
+      )}
       {rows.length === 0 ? (
         <Empty title="No 2FA codes yet" body="Add a secret key, or attach one to a login." />
       ) : (

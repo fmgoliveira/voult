@@ -11,7 +11,7 @@
     "test": "vitest run --passWithNoTests",
     "lint": "eslint .",
     "typecheck": "wxt prepare && tsc --noEmit",
-    "e2e": "playwright test"
+    "e2e": "cross-env WXT_E2E=1 wxt build && playwright test"
   },
   "dependencies": {
     "@voult/core": "workspace:*",
@@ -19,6 +19,7 @@
     "clsx": "^2.1.1",
     "dexie": "^4.4.7",
     "dexie-react-hooks": "^4.4.0",
+    "jsqr": "^1.4.0",
     "lucide-react": "^1.64.0",
     "pdf-lib": "^1.17.1",
     "react": "^19.3.1",
@@ -28,11 +29,16 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.64.1",
+    "@simplewebauthn/server": "^14.0.3",
     "@tailwindcss/vite": "^4.3.3",
+    "@types/qrcode": "^1.5.6",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@wxt-dev/module-react": "^1.2.2",
+    "cross-env": "^10.1.0",
     "fake-indexeddb": "^6.2.6",
+    "happy-dom": "^21.0.4",
+    "qrcode": "^1.5.4",
     "tailwindcss": "^4.3.3"
   }
 }
