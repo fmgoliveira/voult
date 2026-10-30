@@ -60,7 +60,9 @@ export function App() {
             ) : (
               <div className="p-6 text-muted">Decrypting…</div>
             ))}
-          {tab === 'authenticator' && <Authenticator items={data?.items ?? []} />}
+          {tab === 'authenticator' && (
+            <Authenticator items={data?.items ?? []} vaultId={data?.vaults[0]?.id} />
+          )}
           {tab === 'generator' && <Generator />}
           {tab === 'settings' && <SettingsTab settings={settings} status={status} />}
         </div>

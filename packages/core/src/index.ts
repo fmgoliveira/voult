@@ -14,3 +14,4 @@ export * from './exchange/importers';
 export * from './exchange/snapshot';
 export * from './webauthn/authenticator';
 export { EFF_WORDLIST } from './wordlists/eff-large';
+export * from './matching/url';

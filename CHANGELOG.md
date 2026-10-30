@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+### Deployment
+
+- Removed Caddy; Docker Compose publishes the server on host port 6565 for your own reverse proxy
+- Added `docs/INSTALL.md` (server, reverse proxy, extension) and a `zip` script for the extension
+
+### Phase 5 — Autofill + passkeys (extension)
+
+- Form detection heuristics (login, username-only step, register, change-password, OTP incl. split boxes), open shadow DOM and iframes; inline field icon + dropdown rendered in a closed shadow root that ignores scripted clicks
+- PSL-based URL matching in core (domain / host / regex / never rules; no fill on plain http except loopback)
+- Secrets stay in the background: the page only receives metadata until the user picks an item, then the value is returned to that frame after the background re-checks the frame's real URL
+- TOTP autofill on the OTP step that follows a login fill; save / update password prompts (with "never for this site"); inline password generator for register/change forms
+- Ctrl/Cmd+Shift+L command and context-menu entries (fill, generate)
+- "Scan QR on this page" in the authenticator (tab capture + jsQR; otpauth:// and Google Authenticator exports)
+- Passkeys: MAIN-world hook of `navigator.credentials.create/get`, picker window, signing in the background worker, counter persisted, fallback to the browser UI; per-site opt-out
+- E2E against local fixture pages and a real `@simplewebauthn/server` relying party
+
 ### Phase 4 — Extension MVP
 
 - Onboarding (create account / sign in on a new device), mandatory recovery kit (secret key + PDF download) before the first item can be saved

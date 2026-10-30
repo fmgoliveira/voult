@@ -7,8 +7,21 @@ export default defineConfig({
   manifest: ({ browser }) => ({
     name: 'Voult',
     description: 'Self-hosted, zero-knowledge password manager',
-    permissions: ['storage', 'alarms', 'idle', ...(browser === 'chrome' ? ['offscreen'] : [])],
+    permissions: [
+      'storage',
+      'alarms',
+      'idle',
+      'contextMenus',
+      'activeTab',
+      ...(browser === 'chrome' ? ['offscreen'] : []),
+    ],
     // Allow talking to any self-hosted server the user configures.
+    commands: {
+      'fill-login': {
+        suggested_key: { default: 'Ctrl+Shift+L', mac: 'Command+Shift+L' },
+        description: 'Fill login on this page',
+      },
+    },
     host_permissions: ['https://*/*', 'http://localhost/*', 'http://127.0.0.1/*'],
     browser_specific_settings: {
       gecko: {

@@ -5,6 +5,27 @@ import { getLastActivity, isUnlocked, shouldAutoLock } from '../lib/session';
 import { getSettings } from '../lib/settings';
 import { syncOnce } from '../lib/sync';
 import { lock } from '../lib/vault';
+import {
+  handleAccept,
+  handleDismiss,
+  handleFill,
+  handleGenerate,
+  handleOtp,
+  handlePoll,
+  handleQuery,
+  handleSubmit,
+} from '../lib/bg/autofill';
+import { invalidateItems } from '../lib/bg/items';
+import {
+  decidePrompt,
+  getPromptRequest,
+  handlePasskeyCreate,
+  handlePasskeyGet,
+  watchPromptWindows,
+} from '../lib/bg/passkeys';
+import type { ContentRequest } from '../lib/autofill/messages';
+import type { PromptMessage } from '../lib/bg/prompt-types';
+import type { Sender } from '../lib/bg/types';
 
 export default defineBackground(() => {
   let syncing: Promise<unknown> | null = null;
@@ -24,6 +45,7 @@ export default defineBackground(() => {
       })
       .finally(() => {
         syncing = null;
+        invalidateItems();
         if (again) {
           again = false;
           void runSync();
@@ -70,15 +92,106 @@ export default defineBackground(() => {
     }
   }
 
-  browser.runtime.onMessage.addListener((msg: { type?: string; afterSeconds?: number }) => {
-    if (msg?.type === 'sync') {
-      void ensureSocket();
-      void runSync();
+  const isExtensionPage = (sender: { url?: string }) =>
+    !!sender.url?.startsWith(browser.runtime.getURL('/' as never).replace(/\/$/, ''));
+
+  async function route(msg: ContentRequest | PromptMessage, sender: Sender): Promise<unknown> {
+    switch (msg.type) {
+      case 'autofill:query':
+        return handleQuery(sender);
+      case 'autofill:fill':
+        return handleFill(sender, msg.id);
+      case 'autofill:otp':
+        return handleOtp(sender);
+      case 'autofill:generate':
+        return handleGenerate();
+      case 'capture:submit': {
+        await handleSubmit(sender, msg);
+        const tabId = sender.tab?.id;
+        // Let the top frame show the prompt even when the login form lives in an iframe.
+        if (tabId !== undefined) {
+          setTimeout(() => {
+            void browser.tabs
+              .sendMessage(tabId, { type: 'capture:show' }, { frameId: 0 })
+              .catch(() => undefined);
+          }, 900);
+        }
+        return null;
+      }
+      case 'capture:poll':
+        return handlePoll(sender);
+      case 'capture:accept':
+        return handleAccept(sender);
+      case 'capture:dismiss':
+        return handleDismiss(sender, msg.never);
+      case 'passkey:create':
+        return handlePasskeyCreate(sender, msg.options);
+      case 'passkey:get':
+        return handlePasskeyGet(sender, msg.options);
+      case 'prompt:get':
+        return isExtensionPage(sender) ? getPromptRequest(msg.id) : null;
+      case 'prompt:decide':
+        if (isExtensionPage(sender)) decidePrompt(msg.id, msg.decision);
+        return null;
     }
-    if (msg?.type === 'schedule-clipboard-clear' && msg.afterSeconds) {
-      void browser.alarms.create('clipboard-clear', { when: Date.now() + msg.afterSeconds * 1000 });
-    }
-    return undefined;
+  }
+
+  const ROUTED = /^(autofill|capture|passkey|prompt):/;
+  browser.runtime.onMessage.addListener(
+    (msg: { type?: string; afterSeconds?: number }, sender, sendResponse) => {
+      if (msg?.type && ROUTED.test(msg.type)) {
+        route(msg as ContentRequest | PromptMessage, sender).then(sendResponse, () =>
+          sendResponse(null),
+        );
+        return true;
+      }
+      if (msg?.type === 'sync') {
+        invalidateItems();
+        void ensureSocket();
+        void runSync();
+      }
+      if (msg?.type === 'schedule-clipboard-clear' && msg.afterSeconds) {
+        void browser.alarms.create('clipboard-clear', {
+          when: Date.now() + msg.afterSeconds * 1000,
+        });
+      }
+      return undefined;
+    },
+  );
+  watchPromptWindows();
+
+  // Context menu + keyboard shortcut: ask the right frame(s) to run the autofill flow.
+  browser.runtime.onInstalled.addListener(() => {
+    void browser.contextMenus.removeAll().then(() => {
+      browser.contextMenus.create({
+        id: 'voult-fill',
+        title: 'Fill with Voult',
+        contexts: ['editable'],
+      });
+      browser.contextMenus.create({
+        id: 'voult-generate',
+        title: 'Generate password with Voult',
+        contexts: ['editable'],
+      });
+    });
+  });
+  browser.contextMenus.onClicked.addListener((info, tab) => {
+    if (tab?.id === undefined) return;
+    const type =
+      info.menuItemId === 'voult-generate' ? 'autofill:generate-here' : 'autofill:trigger';
+    void browser.tabs
+      .sendMessage(
+        tab.id,
+        { type },
+        info.frameId !== undefined ? { frameId: info.frameId } : undefined,
+      )
+      .catch(() => undefined);
+  });
+  browser.commands.onCommand.addListener(async (command) => {
+    if (command !== 'fill-login') return;
+    const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
+    if (tab?.id !== undefined)
+      void browser.tabs.sendMessage(tab.id, { type: 'autofill:trigger' }).catch(() => undefined);
   });
 
   browser.alarms.create('tick', { periodInMinutes: 1 });

@@ -15,6 +15,11 @@ Chrome/Firefox extension + Android app, all TypeScript. See
 | `packages/ui-tokens` | shared design tokens                              |
 | `packages/config`    | tsconfig, ESLint, Vitest presets                  |
 
+## Install
+
+See [docs/INSTALL.md](docs/INSTALL.md) for running the server in Docker (port 6565, bring your own
+reverse proxy) and loading the extension.
+
 ## Development
 
 Requires Node 22+ and pnpm 12.
