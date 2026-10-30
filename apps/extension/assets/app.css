@@ -2,37 +2,75 @@
 
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 
+/*
+ * Design tokens. Mirrors @voult/ui-tokens (the Android app reads the TS version); keep in sync.
+ * Look: soft glass over an aurora background, indigo→violet brand gradient.
+ */
 :root,
 [data-theme='light'] {
-  --bg: #ffffff;
-  --surface: #f5f6f8;
-  --fg: #14161a;
-  --muted: #5b6270;
-  --border: #e1e4ea;
-  --primary: #4f46e5;
+  --bg: #f4f3ff;
+  --surface: rgba(255, 255, 255, 0.62);
+  --surface-strong: rgba(255, 255, 255, 0.86);
+  --surface-solid: #ffffff;
+  --fg: #171a2b;
+  --muted: #626982;
+  --border: rgba(120, 110, 200, 0.18);
+  --border-strong: rgba(120, 110, 200, 0.34);
+  --primary: #5b50f0;
   --primary-fg: #ffffff;
-  --danger: #dc2626;
+  --accent: #8b5cf6;
+  --danger: #e11d48;
+  --success: #059669;
+  --brand: linear-gradient(135deg, #6d5bf7 0%, #9b5cf6 100%);
+  --brand-glow: rgba(109, 91, 247, 0.5);
+  --shadow: 0 10px 30px -12px rgba(70, 50, 170, 0.28), 0 1px 0 rgba(255, 255, 255, 0.7) inset;
+  --blob-1: rgba(139, 92, 246, 0.28);
+  --blob-2: rgba(56, 189, 248, 0.24);
+  --blob-3: rgba(244, 114, 182, 0.2);
+  --base-a: #f7f6ff;
+  --base-b: #eef0ff;
+  color-scheme: light;
 }
 [data-theme='dark'] {
-  --bg: #0f1115;
-  --surface: #181b21;
-  --fg: #f2f4f8;
-  --muted: #9aa3b2;
-  --border: #2a2f39;
-  --primary: #818cf8;
-  --primary-fg: #0f1115;
-  --danger: #f87171;
+  --bg: #0b0d1a;
+  --surface: rgba(30, 34, 58, 0.55);
+  --surface-strong: rgba(40, 45, 76, 0.82);
+  --surface-solid: #161a2e;
+  --fg: #f1f3ff;
+  --muted: #9aa1c4;
+  --border: rgba(160, 170, 255, 0.14);
+  --border-strong: rgba(160, 170, 255, 0.28);
+  --primary: #8b85ff;
+  --primary-fg: #0b0d1a;
+  --accent: #c084fc;
+  --danger: #fb7185;
+  --success: #34d399;
+  --brand: linear-gradient(135deg, #7c74ff 0%, #b07cff 100%);
+  --brand-glow: rgba(124, 116, 255, 0.45);
+  --shadow: 0 12px 34px -14px rgba(0, 0, 0, 0.7), 0 1px 0 rgba(255, 255, 255, 0.06) inset;
+  --blob-1: rgba(99, 102, 241, 0.34);
+  --blob-2: rgba(14, 165, 233, 0.2);
+  --blob-3: rgba(192, 38, 211, 0.22);
+  --base-a: #0b0d1a;
+  --base-b: #10132a;
+  color-scheme: dark;
 }
 
 @theme inline {
   --color-bg: var(--bg);
   --color-surface: var(--surface);
+  --color-surface-strong: var(--surface-strong);
+  --color-surface-solid: var(--surface-solid);
   --color-fg: var(--fg);
   --color-muted: var(--muted);
   --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
   --color-primary: var(--primary);
   --color-primary-fg: var(--primary-fg);
+  --color-accent: var(--accent);
   --color-danger: var(--danger);
+  --color-success: var(--success);
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 }
 
 html,
@@ -42,28 +80,92 @@ body,
 }
 body {
   margin: 0;
-  background: var(--bg);
   color: var(--fg);
-  font-family:
-    system-ui,
-    -apple-system,
-    'Segoe UI',
-    Roboto,
-    sans-serif;
+  font-family: var(--font-sans);
   font-size: 14px;
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+  background:
+    radial-gradient(420px 320px at 8% -4%, var(--blob-1), transparent 70%),
+    radial-gradient(380px 300px at 108% 22%, var(--blob-2), transparent 70%),
+    radial-gradient(420px 320px at 40% 112%, var(--blob-3), transparent 70%),
+    linear-gradient(160deg, var(--base-a), var(--base-b));
+  background-attachment: fixed;
 }
+
 .popup-frame {
   width: 380px;
   height: 580px;
 }
+
+/* ---- glass primitives ---- */
+.glass {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  -webkit-backdrop-filter: blur(22px) saturate(170%);
+  backdrop-filter: blur(22px) saturate(170%);
+}
+.glass-strong {
+  background: var(--surface-strong);
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  backdrop-filter: blur(28px) saturate(180%);
+}
+.brand-bg {
+  background: var(--brand);
+  color: #fff;
+}
+.brand-glow {
+  box-shadow:
+    0 8px 22px -6px var(--brand-glow),
+    0 1px 0 rgba(255, 255, 255, 0.35) inset;
+}
+.text-gradient {
+  background: var(--brand);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ---- thin scrollbars that match the glass ---- */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* ---- motion (disabled for people who ask) ---- */
 @media (prefers-reduced-motion: no-preference) {
   .fade-in {
-    animation: fade-in 120ms ease-out;
+    animation: fade-in 180ms cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+  .pop-in {
+    animation: pop-in 200ms cubic-bezier(0.2, 0.9, 0.3, 1.2);
+  }
+  .float-slow {
+    animation: float 6s ease-in-out infinite;
   }
   @keyframes fade-in {
     from {
       opacity: 0;
-      transform: translateY(2px);
+      transform: translateY(6px);
+    }
+  }
+  @keyframes pop-in {
+    from {
+      opacity: 0;
+      transform: scale(0.94) translateY(8px);
+    }
+  }
+  @keyframes float {
+    50% {
+      transform: translateY(-4px);
     }
   }
 }

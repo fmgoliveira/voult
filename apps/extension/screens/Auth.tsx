@@ -1,3 +1,4 @@
+import { Download, KeyRound, Lock, Mail, Server, ShieldAlert } from 'lucide-react';
 import { useState } from 'react';
 import { Button, ErrorText, Field, Input, Logo } from '../components/ui';
 import { ApiError } from '../lib/api';
@@ -27,13 +28,18 @@ function Shell({
   children: React.ReactNode;
 }) {
   return (
-    <main className="fade-in flex h-full flex-col gap-4 overflow-auto p-6">
-      <div className="flex flex-col items-center gap-2 pt-2 text-center">
-        <Logo size={40} />
-        <h1 className="text-lg font-semibold">{title}</h1>
-        {subtitle && <p className="text-xs text-muted">{subtitle}</p>}
+    <main className="fade-in flex h-full flex-col overflow-auto px-5 py-6">
+      <div className="flex flex-col items-center gap-2.5 pb-5 text-center">
+        <div className="relative">
+          <div className="absolute inset-0 -z-10 scale-[1.9] rounded-full bg-primary/35 blur-2xl" />
+          <div className="float-slow">
+            <Logo size={58} />
+          </div>
+        </div>
+        <h1 className="text-xl font-extrabold tracking-tight">{title}</h1>
+        {subtitle && <p className="max-w-[270px] text-xs text-muted">{subtitle}</p>}
       </div>
-      {children}
+      <div className="glass-strong space-y-3.5 rounded-3xl p-5">{children}</div>
     </main>
   );
 }
@@ -83,6 +89,7 @@ export function Welcome() {
           {(id) => (
             <Input
               id={id}
+              leading={<Mail size={15} />}
               type="email"
               autoComplete="username"
               required
@@ -102,6 +109,7 @@ export function Welcome() {
           {(id) => (
             <Input
               id={id}
+              leading={<Lock size={15} />}
               type="password"
               autoComplete={mode === 'create' ? 'new-password' : 'current-password'}
               required
@@ -115,6 +123,7 @@ export function Welcome() {
             {(id) => (
               <Input
                 id={id}
+                leading={<Lock size={15} />}
                 type="password"
                 autoComplete="new-password"
                 required
@@ -125,12 +134,15 @@ export function Welcome() {
           </Field>
         )}
         <details className="text-xs text-muted">
-          <summary className="cursor-pointer">Server</summary>
+          <summary className="flex cursor-pointer items-center gap-1.5 font-medium select-none">
+            <Server size={13} /> Server
+          </summary>
           <div className="pt-2">
             <Field label="Server URL">
               {(id) => (
                 <Input
                   id={id}
+                  leading={<Server size={15} />}
                   type="url"
                   value={serverUrl}
                   onChange={(e) => setServerUrl(e.target.value)}
@@ -146,7 +158,7 @@ export function Welcome() {
       </form>
       <button
         type="button"
-        className="text-center text-xs text-primary underline"
+        className="w-full text-center text-xs font-semibold text-primary hover:underline"
         onClick={() => {
           setError(null);
           setMode(mode === 'create' ? 'signin' : 'create');
@@ -188,25 +200,26 @@ export function RecoveryKit({
         <div className="space-y-3">
           <p
             data-testid="recovery-secret"
-            className="select-all rounded-lg border border-border bg-surface p-3 text-center font-mono text-sm tracking-wider break-all"
+            className="select-all rounded-2xl border border-primary/30 bg-primary/10 p-3.5 text-center font-mono text-[15px] font-semibold tracking-[0.14em] break-all"
           >
             {secret}
           </p>
           <Button variant="secondary" className="w-full" onClick={download} disabled={busy}>
-            Download recovery kit (PDF)
+            <Download size={16} /> Download recovery kit (PDF)
           </Button>
           <ErrorText>{error}</ErrorText>
         </div>
       ) : (
-        <p className="rounded-lg border border-border bg-surface p-3 text-xs text-muted">
+        <p className="flex gap-2 rounded-2xl border border-border bg-surface p-3 text-xs text-muted">
+          <ShieldAlert size={16} className="mt-px shrink-0" />
           The secret key is only shown once, right after signup. If you did not save it, you can
           still continue with your master password.
         </p>
       )}
-      <label className="flex items-start gap-2 text-sm">
+      <label className="flex items-start gap-2.5 text-xs leading-snug text-muted">
         <input
           type="checkbox"
-          className="mt-1"
+          className="mt-0.5 size-4 shrink-0 accent-[var(--primary)]"
           checked={saved}
           onChange={(e) => setSaved(e.target.checked)}
         />
@@ -214,7 +227,7 @@ export function RecoveryKit({
           I stored my recovery kit somewhere safe. I understand Voult cannot reset my password.
         </span>
       </label>
-      <Button disabled={!saved} onClick={() => void confirmRecoveryKit()}>
+      <Button className="w-full" disabled={!saved} onClick={() => void confirmRecoveryKit()}>
         Continue
       </Button>
     </Shell>
@@ -264,6 +277,7 @@ export function Unlock({
             {(id) => (
               <Input
                 id={id}
+                leading={<KeyRound size={15} />}
                 type="password"
                 inputMode="numeric"
                 autoFocus
@@ -279,7 +293,7 @@ export function Unlock({
           </Button>
           <button
             type="button"
-            className="w-full text-center text-xs text-primary underline"
+            className="w-full text-center text-xs font-semibold text-primary hover:underline"
             onClick={() => {
               setError(null);
               setUsePin(false);
@@ -294,6 +308,7 @@ export function Unlock({
             {(id) => (
               <Input
                 id={id}
+                leading={<Lock size={15} />}
                 type="password"
                 autoFocus
                 autoComplete="current-password"
@@ -327,7 +342,7 @@ export function Unlock({
       )}
       <button
         type="button"
-        className="text-center text-xs text-muted underline"
+        className="w-full text-center text-xs text-muted hover:text-fg hover:underline"
         onClick={() =>
           confirm('Sign out and remove local data from this browser?') && void signOut()
         }
@@ -357,6 +372,7 @@ export function Reauth({ email }: { email: string }) {
           {(id) => (
             <Input
               id={id}
+              leading={<Lock size={15} />}
               type="password"
               autoFocus
               autoComplete="current-password"
@@ -372,7 +388,7 @@ export function Reauth({ email }: { email: string }) {
       </form>
       <button
         type="button"
-        className="text-center text-xs text-muted underline"
+        className="w-full text-center text-xs text-muted hover:text-fg hover:underline"
         onClick={() => confirm('Sign out and discard unsynced changes?') && void signOut()}
       >
         Sign out

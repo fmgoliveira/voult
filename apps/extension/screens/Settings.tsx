@@ -1,3 +1,11 @@
+import {
+  Fingerprint,
+  MonitorSmartphone,
+  Palette,
+  ShieldCheck,
+  UserRound,
+  type LucideIcon,
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Button, ErrorText, Field, Input, Select, Switch } from '../components/ui';
 import { requestOk } from '../lib/api';
@@ -27,10 +35,24 @@ const lines = (v: string) => [
   ),
 ];
 
+const SECTION_ICON: Record<string, LucideIcon> = {
+  Account: UserRound,
+  Security: ShieldCheck,
+  'Autofill & passkeys': Fingerprint,
+  Appearance: Palette,
+  Devices: MonitorSmartphone,
+};
+
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  const Icon = SECTION_ICON[title] ?? ShieldCheck;
   return (
-    <section className="space-y-3 border-b border-border py-4">
-      <h3 className="text-xs font-semibold tracking-wide text-muted uppercase">{title}</h3>
+    <section className="glass space-y-3 rounded-2xl p-4 text-sm">
+      <h3 className="flex items-center gap-2 text-xs font-bold tracking-wider text-muted uppercase">
+        <span className="brand-bg grid size-6 place-items-center rounded-lg">
+          <Icon size={13} />
+        </span>
+        {title}
+      </h3>
       {children}
     </section>
   );
@@ -39,7 +61,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between gap-3">
-      <span>{label}</span>
+      <span className="font-medium">{label}</span>
       {children}
     </div>
   );
@@ -53,7 +75,7 @@ function ChangePassword() {
   const { busy, error, run } = useAsyncAction();
   if (!open)
     return (
-      <Button variant="secondary" onClick={() => setOpen(true)}>
+      <Button variant="secondary" className="w-full" onClick={() => setOpen(true)}>
         Change master password
       </Button>
     );
@@ -126,7 +148,7 @@ export function SettingsTab({ settings, status }: { settings: Settings; status: 
   const set = (p: Partial<Settings>) => void updateSettings(p);
 
   return (
-    <div className="fade-in flex-1 overflow-auto px-4">
+    <div className="fade-in flex-1 space-y-3 overflow-auto px-4 pb-3">
       <Section title="Account">
         <Row label="Signed in as">
           <span className="truncate text-muted" data-testid="account-email">
@@ -223,7 +245,7 @@ export function SettingsTab({ settings, status }: { settings: Settings; status: 
           closes.
         </p>
         <ChangePassword />
-        <Button variant="secondary" onClick={() => void lock()}>
+        <Button variant="secondary" className="w-full" onClick={() => void lock()}>
           Lock now
         </Button>
       </Section>
@@ -250,7 +272,7 @@ export function SettingsTab({ settings, status }: { settings: Settings; status: 
               rows={2}
               defaultValue={settings.neverSave.join(LF)}
               onBlur={(e) => set({ neverSave: lines(e.target.value) })}
-              className="w-full rounded-lg border border-border bg-bg p-2 text-sm"
+              className="w-full rounded-xl border border-border bg-surface p-2.5 text-sm backdrop-blur-md focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:outline-0"
             />
           )}
         </Field>
@@ -261,7 +283,7 @@ export function SettingsTab({ settings, status }: { settings: Settings; status: 
               rows={2}
               defaultValue={settings.passkeyOptOut.join(LF)}
               onBlur={(e) => set({ passkeyOptOut: lines(e.target.value) })}
-              className="w-full rounded-lg border border-border bg-bg p-2 text-sm"
+              className="w-full rounded-xl border border-border bg-surface p-2.5 text-sm backdrop-blur-md focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:outline-0"
             />
           )}
         </Field>
@@ -310,7 +332,7 @@ export function SettingsTab({ settings, status }: { settings: Settings; status: 
         </ul>
       </Section>
 
-      <div className="py-4">
+      <div>
         <Button
           variant="danger"
           className="w-full"

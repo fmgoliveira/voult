@@ -8,7 +8,16 @@ import { Copy, RefreshCw, Plus, ScanLine } from 'lucide-react';
 import type { Totp } from '@voult/core';
 import { useMemo, useState } from 'react';
 import { TotpCode } from '../components/Totp';
-import { Button, Empty, Field, IconButton, Input } from '../components/ui';
+import {
+  Button,
+  Empty,
+  Field,
+  IconButton,
+  Input,
+  ItemAvatar,
+  Pills,
+  SearchInput,
+} from '../components/ui';
 import { copySecret } from '../lib/clipboard';
 import { useNav } from '../lib/nav';
 import { matchesText } from '@voult/core';
@@ -16,6 +25,27 @@ import { scanActiveTab } from '../lib/qr';
 import { saveItem } from '../lib/vault';
 import { useAsyncAction } from '../lib/hooks';
 import type { ItemView } from '../lib/vault';
+
+const toggleCls =
+  'glass flex cursor-pointer items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium has-[:checked]:border-primary/50 has-[:checked]:bg-primary/10';
+
+/** Colour digits and symbols so a generated password is easy to read aloud and verify. */
+function Colored({ value }: { value: string }) {
+  return (
+    <>
+      {[...value].map((ch, i) => (
+        <span
+          key={i}
+          className={
+            /[0-9]/.test(ch) ? 'text-primary' : /[^A-Za-z0-9]/.test(ch) ? 'text-accent' : ''
+          }
+        >
+          {ch}
+        </span>
+      ))}
+    </>
+  );
+}
 
 export function Generator() {
   const [mode, setMode] = useState<'random' | 'passphrase'>('random');
@@ -48,21 +78,25 @@ export function Generator() {
     label: string,
     key: 'upper' | 'lower' | 'digits' | 'symbols' | 'excludeAmbiguous',
   ) => (
-    <label className="flex items-center gap-2">
+    <label className={toggleCls}>
       <input
         type="checkbox"
+        className="size-4 accent-[var(--primary)]"
         checked={random[key]}
         onChange={(e) => setRandom({ ...random, [key]: e.target.checked })}
-      />{' '}
+      />
       {label}
     </label>
   );
 
   return (
     <div className="fade-in flex-1 space-y-4 overflow-auto p-4">
-      <div className="flex gap-2 rounded-lg border border-border bg-surface p-3">
-        <output data-testid="generated" className="min-w-0 flex-1 font-mono text-base break-all">
-          {value || 'Select at least one option'}
+      <div className="glass-strong flex items-start gap-1 rounded-2xl p-3.5">
+        <output
+          data-testid="generated"
+          className="min-w-0 flex-1 py-1 font-mono text-[15px] leading-relaxed font-medium break-all"
+        >
+          {value ? <Colored value={value} /> : 'Select at least one option'}
         </output>
         <IconButton label="Regenerate" onClick={() => setNonce(nonce + 1)}>
           <RefreshCw size={16} />
@@ -71,19 +105,15 @@ export function Generator() {
           <Copy size={16} />
         </IconButton>
       </div>
-      <div className="flex gap-1 text-xs" role="tablist">
-        {(['random', 'passphrase'] as const).map((m) => (
-          <button
-            key={m}
-            role="tab"
-            aria-selected={mode === m}
-            onClick={() => setMode(m)}
-            className={`rounded-full px-3 py-1 ${mode === m ? 'bg-primary text-primary-fg' : 'bg-surface'}`}
-          >
-            {m === 'random' ? 'Random' : 'Passphrase'}
-          </button>
-        ))}
-      </div>
+      <Pills
+        label="Generator type"
+        value={mode}
+        onChange={setMode}
+        options={[
+          { value: 'random', label: 'Random' },
+          { value: 'passphrase', label: 'Passphrase' },
+        ]}
+      />
       {mode === 'random' ? (
         <div className="space-y-3">
           <Field label={`Length: ${random.length}`}>
@@ -95,7 +125,7 @@ export function Generator() {
                 max={64}
                 value={random.length}
                 onChange={(e) => setRandom({ ...random, length: Number(e.target.value) })}
-                className="w-full"
+                className="w-full accent-[var(--primary)]"
               />
             )}
           </Field>
@@ -118,7 +148,7 @@ export function Generator() {
                 max={10}
                 value={phrase.words}
                 onChange={(e) => setPhrase({ ...phrase, words: Number(e.target.value) })}
-                className="w-full"
+                className="w-full accent-[var(--primary)]"
               />
             )}
           </Field>
@@ -132,20 +162,22 @@ export function Generator() {
               />
             )}
           </Field>
-          <label className="flex items-center gap-2">
+          <label className={toggleCls}>
             <input
               type="checkbox"
+              className="size-4 accent-[var(--primary)]"
               checked={phrase.capitalize}
               onChange={(e) => setPhrase({ ...phrase, capitalize: e.target.checked })}
-            />{' '}
+            />
             Capitalise
           </label>
-          <label className="flex items-center gap-2">
+          <label className={toggleCls}>
             <input
               type="checkbox"
+              className="size-4 accent-[var(--primary)]"
               checked={phrase.appendDigit}
               onChange={(e) => setPhrase({ ...phrase, appendDigit: e.target.checked })}
-            />{' '}
+            />
             Append a digit
           </label>
         </div>
@@ -165,7 +197,7 @@ function ScanResult({
 }) {
   const { busy, error, run } = useAsyncAction();
   return (
-    <div className="space-y-2 border-b border-border bg-surface p-3" role="status">
+    <div className="glass-strong mx-4 mb-2 space-y-2 rounded-2xl p-3.5" role="status">
       <p className="font-medium">
         Found {found.length} code{found.length === 1 ? '' : 's'}
       </p>
@@ -233,9 +265,8 @@ export function Authenticator({ items, vaultId }: { items: ItemView[]; vaultId?:
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex gap-2 border-b border-border p-3">
-        <Input
-          type="search"
+      <div className="flex gap-2 px-4 pb-2">
+        <SearchInput
           aria-label="Search codes"
           placeholder="Search codes"
           value={text}
@@ -245,7 +276,7 @@ export function Authenticator({ items, vaultId }: { items: ItemView[]; vaultId?:
           variant="secondary"
           aria-label="Scan QR code on this page"
           title="Scan QR code on this page"
-          className="w-9 px-0"
+          className="size-10 shrink-0 px-0"
           disabled={scan.busy}
           onClick={() => void scan.run(async () => setFound(await scanActiveTab()))}
         >
@@ -253,7 +284,7 @@ export function Authenticator({ items, vaultId }: { items: ItemView[]; vaultId?:
         </Button>
         <Button
           aria-label="Add 2FA code"
-          className="w-9 px-0"
+          className="size-10 shrink-0 px-0"
           onClick={() => {
             setTab('vault');
             open({ name: 'new', type: 'totp' });
@@ -263,7 +294,10 @@ export function Authenticator({ items, vaultId }: { items: ItemView[]; vaultId?:
         </Button>
       </div>
       {scan.error && (
-        <p role="alert" className="border-b border-border p-3 text-xs text-danger">
+        <p
+          role="alert"
+          className="mx-4 mb-2 rounded-xl border border-danger/30 bg-danger/10 p-3 text-xs text-danger"
+        >
           {scan.error}
         </p>
       )}
@@ -271,20 +305,27 @@ export function Authenticator({ items, vaultId }: { items: ItemView[]; vaultId?:
         <ScanResult found={found} vaultId={vaultId} onDone={() => setFound(null)} />
       )}
       {rows.length === 0 ? (
-        <Empty title="No 2FA codes yet" body="Add a secret key, or attach one to a login." />
+        <Empty
+          title="No 2FA codes yet"
+          body="Scan a QR code, add a secret key, or attach one to a login."
+          icon={ScanLine}
+        />
       ) : (
-        <ul className="flex-1 overflow-auto" aria-label="2FA codes">
+        <ul className="flex-1 space-y-2 overflow-auto px-4 pb-3" aria-label="2FA codes">
           {rows.map(({ v, totp }) => (
-            <li key={v.id} className="border-b border-border/60 px-4 py-3">
+            <li key={v.id} className="glass rounded-2xl p-3">
               <button
-                className="mb-1 block max-w-full truncate text-left text-xs text-muted hover:underline"
+                className="mb-1.5 flex max-w-full items-center gap-2 truncate text-left text-xs font-semibold text-muted hover:text-fg"
                 onClick={() => {
                   setTab('vault');
                   open({ name: 'detail', id: v.id });
                 }}
               >
-                {v.item.title}
-                {totp.account ? ` · ${totp.account}` : ''}
+                <ItemAvatar type={v.item.type} title={v.item.title} size={22} />
+                <span className="truncate">
+                  {v.item.title}
+                  {totp.account ? ` · ${totp.account}` : ''}
+                </span>
               </button>
               <TotpCode entry={totp} showNext />
             </li>

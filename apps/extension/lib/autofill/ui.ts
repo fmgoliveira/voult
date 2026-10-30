@@ -1,38 +1,62 @@
+import { avatarGradient } from '@voult/ui-tokens';
+
 /**
  * In-page UI (icon, dropdown, save prompt). Lives in a closed shadow root so page CSS cannot
  * restyle it and page scripts cannot read what it shows.
  */
 const CSS = `
 :host { all: initial; }
-* { box-sizing: border-box; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
-.icon { position: fixed; z-index: 2147483646; width: 22px; height: 22px; border: 0; padding: 0; cursor: pointer;
-  border-radius: 6px; background: #4f46e5; display: none; align-items: center; justify-content: center; }
-.icon svg { width: 14px; height: 14px; }
-.menu { position: fixed; z-index: 2147483647; min-width: 240px; max-width: 340px; background: #fff; color: #14161a;
-  border: 1px solid #e1e4ea; border-radius: 10px; box-shadow: 0 8px 28px rgba(0,0,0,.18); padding: 4px; font-size: 13px; }
-.menu button { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; width: 100%; border: 0; background: none;
-  text-align: left; padding: 8px 10px; border-radius: 7px; cursor: pointer; color: inherit; font-size: 13px; }
-.menu button:hover, .menu button:focus-visible { background: #eef0ff; outline: none; }
-.menu small { color: #5b6270; font-size: 12px; }
-.menu .note { padding: 8px 10px; color: #5b6270; }
-.bar { position: fixed; z-index: 2147483647; top: 12px; right: 12px; width: 330px; background: #fff; color: #14161a;
-  border: 1px solid #e1e4ea; border-radius: 12px; box-shadow: 0 8px 28px rgba(0,0,0,.2); padding: 14px; font-size: 13px; }
-.bar h2 { margin: 0 0 4px; font-size: 14px; }
-.bar p { margin: 0 0 12px; color: #5b6270; }
+* { box-sizing: border-box; font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
+.icon { position: fixed; z-index: 2147483646; width: 24px; height: 24px; border: 0; padding: 0; cursor: pointer;
+  border-radius: 8px; background: linear-gradient(135deg, #6d5bf7, #a35cf6); display: none; align-items: center; justify-content: center;
+  box-shadow: 0 4px 12px -2px rgba(109, 91, 247, .6), inset 0 1px 0 rgba(255,255,255,.35); transition: transform .12s ease; }
+.icon:hover { transform: scale(1.08); }
+.icon svg { width: 15px; height: 15px; }
+.menu { position: fixed; z-index: 2147483647; min-width: 250px; max-width: 340px; padding: 6px; font-size: 13px; color: #171a2b;
+  background: rgba(255,255,255,.78); border: 1px solid rgba(120,110,200,.25); border-radius: 16px;
+  -webkit-backdrop-filter: blur(22px) saturate(180%); backdrop-filter: blur(22px) saturate(180%);
+  box-shadow: 0 18px 44px -12px rgba(50,35,140,.4), inset 0 1px 0 rgba(255,255,255,.8);
+  animation: pop .16s cubic-bezier(.2,.9,.3,1.2); }
+.menu button { display: flex; align-items: center; gap: 10px; width: 100%; border: 0; background: none; text-align: left;
+  padding: 7px 8px; border-radius: 11px; cursor: pointer; color: inherit; font-size: 13px; }
+.menu button:hover, .menu button:focus-visible { background: rgba(99,102,241,.13); outline: none; }
+.menu .avatar { flex: none; width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; color: #fff;
+  font-weight: 700; font-size: 13px; }
+.menu .text { display: flex; flex-direction: column; min-width: 0; }
+.menu .text span:first-child { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.menu small { color: #626982; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.menu .note { padding: 9px 10px; color: #626982; }
+.bar { position: fixed; z-index: 2147483647; top: 14px; right: 14px; width: 340px; padding: 16px; font-size: 13px; color: #171a2b;
+  background: rgba(255,255,255,.82); border: 1px solid rgba(120,110,200,.25); border-radius: 20px;
+  -webkit-backdrop-filter: blur(24px) saturate(180%); backdrop-filter: blur(24px) saturate(180%);
+  box-shadow: 0 22px 54px -14px rgba(50,35,140,.45), inset 0 1px 0 rgba(255,255,255,.8);
+  animation: slide .22s cubic-bezier(.2,.9,.3,1.1); }
+.bar .head { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+.bar .head svg { width: 28px; height: 28px; flex: none; }
+.bar h2 { margin: 0; font-size: 14px; font-weight: 700; }
+.bar p { margin: 2px 0 14px; color: #626982; padding-left: 38px; }
 .bar .row { display: flex; gap: 8px; flex-wrap: wrap; }
-.bar button { height: 32px; padding: 0 12px; border-radius: 8px; border: 1px solid #e1e4ea; background: #f5f6f8; cursor: pointer; font-size: 13px; }
-.bar button.primary { background: #4f46e5; border-color: #4f46e5; color: #fff; }
+.bar button { height: 34px; padding: 0 14px; border-radius: 11px; border: 1px solid rgba(120,110,200,.25); background: rgba(255,255,255,.6);
+  cursor: pointer; font-size: 13px; font-weight: 600; color: inherit; transition: transform .1s ease; }
+.bar button:active { transform: scale(.96); }
+.bar button.primary { background: linear-gradient(135deg, #6d5bf7, #a35cf6); border-color: transparent; color: #fff;
+  box-shadow: 0 6px 16px -4px rgba(109,91,247,.6); }
+@keyframes pop { from { opacity: 0; transform: translateY(-4px) scale(.97); } }
+@keyframes slide { from { opacity: 0; transform: translateY(-10px) scale(.97); } }
+@media (prefers-reduced-motion: reduce) { .menu, .bar { animation: none; } }
 @media (prefers-color-scheme: dark) {
-  .menu, .bar { background: #181b21; color: #f2f4f8; border-color: #2a2f39; }
-  .menu button:hover, .menu button:focus-visible { background: #262b35; }
-  .menu small, .menu .note, .bar p { color: #9aa3b2; }
-  .bar button { background: #262b35; border-color: #2a2f39; color: inherit; }
-  .bar button.primary { background: #818cf8; border-color: #818cf8; color: #0f1115; }
+  .menu, .bar { color: #f1f3ff; background: rgba(24,28,52,.78); border-color: rgba(160,170,255,.22);
+    box-shadow: 0 22px 54px -14px rgba(0,0,0,.75), inset 0 1px 0 rgba(255,255,255,.07); }
+  .menu button:hover, .menu button:focus-visible { background: rgba(139,133,255,.18); }
+  .menu small, .menu .note, .bar p { color: #9aa1c4; }
+  .bar button { background: rgba(255,255,255,.07); border-color: rgba(160,170,255,.2); }
 }
 `;
 
 const LOGO =
-  '<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M9 11l7 11 7-11" stroke="#fff" stroke-width="3.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  '<svg viewBox="0 0 40 40" aria-hidden="true"><path d="M20 8.5 29.5 12v7.2c0 5.4-3.8 9.8-9.5 12.3-5.7-2.5-9.5-6.9-9.5-12.3V12L20 8.5Z" fill="rgba(255,255,255,.2)" stroke="#fff" stroke-width="2.2" stroke-linejoin="round"/><path d="M16 20.5l3 3 5.5-6" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const BAR_LOGO =
+  '<svg viewBox="0 0 40 40" aria-hidden="true"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6d5bf7"/><stop offset="1" stop-color="#b06cf7"/></linearGradient></defs><rect width="40" height="40" rx="12" fill="url(#g)"/><path d="M20 8.5 29.5 12v7.2c0 5.4-3.8 9.8-9.5 12.3-5.7-2.5-9.5-6.9-9.5-12.3V12L20 8.5Z" fill="rgba(255,255,255,.2)" stroke="#fff" stroke-width="1.8" stroke-linejoin="round"/><path d="M16 20.5l3 3 5.5-6" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
 export interface MenuItem {
   label: string;
@@ -127,14 +151,22 @@ export class InPageUi {
         this.closeMenu();
         item.onSelect();
       });
+      const av = document.createElement('span');
+      av.className = 'avatar';
+      const [from, to] = avatarGradient((item.label || '?').toLowerCase());
+      av.style.background = `linear-gradient(135deg, ${from}, ${to})`;
+      av.textContent = (item.label.trim()[0] ?? '?').toUpperCase();
+      const text = document.createElement('span');
+      text.className = 'text';
       const t = document.createElement('span');
       t.textContent = item.label;
-      b.append(t);
+      text.append(t);
       if (item.detail) {
         const s = document.createElement('small');
         s.textContent = item.detail;
-        b.append(s);
+        text.append(s);
       }
+      b.append(av, text);
       menu.append(b);
     }
     this.root.append(menu);
@@ -165,8 +197,12 @@ export class InPageUi {
     const bar = document.createElement('div');
     bar.className = 'bar';
     bar.setAttribute('role', 'alertdialog');
+    const head = document.createElement('div');
+    head.className = 'head';
+    head.innerHTML = BAR_LOGO;
     const h = document.createElement('h2');
     h.textContent = opts.title;
+    head.append(h);
     const p = document.createElement('p');
     p.textContent = opts.body;
     const row = document.createElement('div');
@@ -183,7 +219,7 @@ export class InPageUi {
       });
       row.append(b);
     }
-    bar.append(h, p, row);
+    bar.append(head, p, row);
     this.root.append(bar);
     this.bar = bar;
   }

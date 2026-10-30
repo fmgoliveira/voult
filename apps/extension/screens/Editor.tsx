@@ -8,7 +8,7 @@ import {
 } from '@voult/core';
 import { Eye, EyeOff, Plus, Trash2, Wand2 } from 'lucide-react';
 import { useState } from 'react';
-import { Button, ErrorText, Field, IconButton, Input, Select } from '../components/ui';
+import { Button, ErrorText, Field, IconButton, Input, Select, TypeTile } from '../components/ui';
 import { useAsyncAction } from '../lib/hooks';
 import { useNav } from '../lib/nav';
 import { parseTotpInput } from '@voult/core';
@@ -157,7 +157,7 @@ export function Editor({
         save();
       }}
     >
-      <div className="flex items-center gap-2 border-b border-border p-3">
+      <div className="flex items-center gap-2 px-3 pt-3 pb-2">
         <Button
           type="button"
           variant="ghost"
@@ -165,12 +165,15 @@ export function Editor({
         >
           Cancel
         </Button>
-        <h2 className="flex-1 text-center font-medium">{titleText}</h2>
+        <h2 className="flex flex-1 items-center justify-center gap-2 text-center text-sm font-bold">
+          <TypeTile type={draft.type} size={24} />
+          {titleText}
+        </h2>
         <Button type="submit" disabled={busy}>
           Save
         </Button>
       </div>
-      <div className="flex-1 space-y-3 overflow-auto p-4">
+      <div className="glass mx-3 mb-3 flex-1 space-y-3.5 overflow-auto rounded-3xl p-4">
         <Text label="Title" value={draft.title} onChange={(v) => patch({ title: v })} />
 
         {draft.type === 'login' && (
@@ -355,7 +358,7 @@ export function Editor({
               rows={4}
               value={draft.notes}
               onChange={(e) => patch({ notes: e.target.value })}
-              className="w-full rounded-lg border border-border bg-bg p-2 text-sm focus-visible:outline-2 focus-visible:outline-primary"
+              className="w-full rounded-xl border border-border bg-surface p-3 text-sm backdrop-blur-md transition-colors hover:border-border-strong focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:outline-0"
             />
           )}
         </Field>
@@ -378,9 +381,10 @@ export function Editor({
             )}
           </Field>
         )}
-        <label className="flex items-center gap-2 text-sm">
+        <label className="flex items-center gap-2.5 text-sm font-medium">
           <input
             type="checkbox"
+            className="size-4 accent-[var(--primary)]"
             checked={draft.favorite}
             onChange={(e) => patch({ favorite: e.target.checked })}
           />{' '}
