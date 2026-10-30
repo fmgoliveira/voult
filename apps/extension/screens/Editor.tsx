@@ -10,7 +10,7 @@ import { useState } from 'react';
 import { Button, ErrorText, Field, IconButton, Input, Select } from '../components/ui';
 import { useAsyncAction } from '../lib/hooks';
 import { useNav } from '../lib/nav';
-import { parseTotpInput } from '../lib/totp-input';
+import { parseTotpInput } from '@voult/core';
 import { saveItem, saveLoginEdit, type ItemView, type VaultView } from '../lib/vault';
 
 const TYPE_LABEL: Record<ItemType, string> = {

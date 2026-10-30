@@ -46,10 +46,4 @@ export async function updateSettings(patch: Partial<Settings>): Promise<Settings
 export const watchSettings = (cb: (s: Settings) => void) =>
   item.watch((v) => cb({ ...DEFAULT_SETTINGS, ...v }));
 
-export const normalizeServerUrl = (url: string): string => {
-  const u = new URL(url.trim());
-  if (u.protocol !== 'https:' && !['localhost', '127.0.0.1'].includes(u.hostname)) {
-    throw new Error('Server URL must use https');
-  }
-  return u.origin;
-};
+export { normalizeServerUrl } from '@voult/core';

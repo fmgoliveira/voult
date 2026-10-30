@@ -24,3 +24,6 @@ export * from './client/http';
 export * from './client/sync';
 export * from './client/vault-client';
 export * from './client/account';
+export * from './client/search';
+export * from './client/totp-input';
+export * from './client/server-url';

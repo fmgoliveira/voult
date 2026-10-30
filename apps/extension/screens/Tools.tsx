@@ -11,7 +11,7 @@ import { TotpCode } from '../components/Totp';
 import { Button, Empty, Field, IconButton, Input } from '../components/ui';
 import { copySecret } from '../lib/clipboard';
 import { useNav } from '../lib/nav';
-import { matchesText } from '../lib/search';
+import { matchesText } from '@voult/core';
 import { scanActiveTab } from '../lib/qr';
 import { saveItem } from '../lib/vault';
 import { useAsyncAction } from '../lib/hooks';

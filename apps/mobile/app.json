@@ -11,7 +11,9 @@
       "package": "com.franciscoliveira.voult",
       "minSdkVersion": 26
     },
-    "plugins": ["expo-router", "expo-dev-client"],
-    "experiments": { "typedRoutes": true }
+    "plugins": ["expo-router", "expo-dev-client", "expo-secure-store"],
+    "experiments": {
+      "typedRoutes": true
+    }
   }
 }

@@ -1,6 +1,6 @@
 import type { ItemType } from '@voult/core';
 import { create } from 'zustand';
-import type { ListQuery } from './search';
+import type { ListQuery } from '@voult/core';
 
 export type Tab = 'vault' | 'authenticator' | 'generator' | 'settings';
 

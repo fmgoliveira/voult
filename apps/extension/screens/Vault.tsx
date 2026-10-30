@@ -21,7 +21,7 @@ import { TotpCode } from '../components/Totp';
 import { Button, Empty, IconButton, Input, Select } from '../components/ui';
 import { copySecret } from '../lib/clipboard';
 import { useNav } from '../lib/nav';
-import { hostOf, queryItems, type SortKey, type TypeFilter } from '../lib/search';
+import { hostOf, queryItems, type SortKey, type TypeFilter } from '@voult/core';
 import {
   purgeItem,
   restoreItem,

@@ -9,6 +9,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./testkit": {
+      "types": "./dist/client/fake-server.testkit.d.ts",
+      "default": "./dist/client/fake-server.testkit.js"
     }
   },
   "scripts": {

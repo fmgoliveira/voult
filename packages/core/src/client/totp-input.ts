@@ -1,4 +1,5 @@
-import { parseOtpauthUri, type LoginItem } from '@voult/core';
+import { parseOtpauthUri } from '../totp/otpauth';
+import type { LoginItem } from '../vault/schemas';
 
 /** Accepts a bare base32 secret or a full otpauth:// URI. */
 export function parseTotpInput(input: string, prev: LoginItem['totp']) {

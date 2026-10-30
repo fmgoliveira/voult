@@ -1,6 +1,6 @@
 import { createHttp, type Http, type TokenStore } from './http';
 import { MemoryStore } from './memory-store';
-import { createMutexLock } from './store';
+import { createMutexLock, type ClientStore } from './store';
 import { createSyncEngine } from './sync';
 import { createVaultClient } from './vault-client';
 import { createAccountService, type SessionPlatform } from './account';
@@ -146,8 +146,8 @@ export class FakeServer {
 }
 
 /** One simulated device: store + http + sync + vault client + account service. */
-export function createTestClient(server: FakeServer, opts: { sync?: boolean } = {}) {
-  const store = new MemoryStore();
+export function createTestClient(server: FakeServer, opts: { store?: ClientStore } = {}) {
+  const store: ClientStore = opts.store ?? new MemoryStore();
   const lock = createMutexLock();
   let refresh: { deviceId: string; refreshToken: string } | null = null;
   let access: { token: string; exp: number } | null = null;
@@ -189,7 +189,6 @@ export function createTestClient(server: FakeServer, opts: { sync?: boolean } = 
     },
     requestSync,
   });
-  void opts;
   return {
     store,
     http,

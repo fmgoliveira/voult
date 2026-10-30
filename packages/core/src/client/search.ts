@@ -1,5 +1,6 @@
-import { isPurgeable, type Item } from '@voult/core';
-import type { ItemView } from './vault';
+import { isPurgeable } from '../vault/ops';
+import type { Item } from '../vault/schemas';
+import type { ItemView } from './types';
 
 export type SortKey = 'title' | 'updated' | 'created';
 export type TypeFilter = 'all' | Item['type'];
