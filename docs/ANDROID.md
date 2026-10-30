@@ -162,9 +162,7 @@ Tick these off and note anything that looks wrong.
 
 | Symptom | Fix |
 | --- | --- |
-| `[CXX1101] NDK at …
-dk.1.12297006 did not have a source.properties file` | That NDK folder is a half-finished download. Delete it and reinstall: `Remove-Item -Recurse -Force "$env:LOCALAPPDATA\Android\Sdk
-dk.1.12297006"`, then `& "$env:ANDROID_HOME\cmdline-tools\latestin\sdkmanager.bat" --licenses` (answer `y`) and `& "$env:ANDROID_HOME\cmdline-tools\latestin\sdkmanager.bat" "ndk;27.1.12297006" "cmake;3.22.1"`. Expo pins this exact NDK version, so a different installed NDK does not help. |
+| `[CXX1101] NDK at ...\ndk\27.1.12297006 did not have a source.properties file` | That NDK folder is a half-finished download. Delete it and reinstall it (PowerShell): `Remove-Item -Recurse -Force "$env:LOCALAPPDATA\Android\Sdk\ndk\27.1.12297006"`, then `& "$env:ANDROID_HOME\cmdline-tools\latest\bin\sdkmanager.bat" --licenses` (answer `y` to all) and `& "$env:ANDROID_HOME\cmdline-tools\latest\bin\sdkmanager.bat" "ndk;27.1.12297006" "cmake;3.22.1"`. Expo pins this exact NDK version, so a different installed NDK does not help. |
 | `SDK location not found` | `ANDROID_HOME` not set in the shell that runs `pnpm android`; open a new terminal. |
 | `ninja: error: … Filename too long` / CMake errors | Enable long paths (step 1.4) and delete `apps/mobile/android` before retrying. |
 | Gradle error in `voult-native` (Kotlin) | Expected possibility — send the full error (section 8). |
