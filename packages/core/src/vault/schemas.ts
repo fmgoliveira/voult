@@ -37,7 +37,10 @@ export const passkeySchema = z.object({
 });
 export type Passkey = z.infer<typeof passkeySchema>;
 
-export const passwordVersionSchema = z.object({ password: z.string(), changedAt: z.number().int() });
+export const passwordVersionSchema = z.object({
+  password: z.string(),
+  changedAt: z.number().int(),
+});
 export const PASSWORD_HISTORY_LIMIT = 10;
 
 const base = {

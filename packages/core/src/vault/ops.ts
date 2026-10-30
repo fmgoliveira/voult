@@ -117,11 +117,7 @@ export function resolveConflict(local: Item, remote: Item): Item {
   if (winner.type === 'login' && loser.type === 'login' && winner.password !== loser.password) {
     return {
       ...winner,
-      passwordHistory: pushPasswordHistory(
-        winner.passwordHistory,
-        loser.password,
-        loser.updatedAt,
-      ),
+      passwordHistory: pushPasswordHistory(winner.passwordHistory, loser.password, loser.updatedAt),
     };
   }
   return winner;
