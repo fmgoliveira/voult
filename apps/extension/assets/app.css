@@ -1,0 +1,69 @@
+@import 'tailwindcss';
+
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+:root,
+[data-theme='light'] {
+  --bg: #ffffff;
+  --surface: #f5f6f8;
+  --fg: #14161a;
+  --muted: #5b6270;
+  --border: #e1e4ea;
+  --primary: #4f46e5;
+  --primary-fg: #ffffff;
+  --danger: #dc2626;
+}
+[data-theme='dark'] {
+  --bg: #0f1115;
+  --surface: #181b21;
+  --fg: #f2f4f8;
+  --muted: #9aa3b2;
+  --border: #2a2f39;
+  --primary: #818cf8;
+  --primary-fg: #0f1115;
+  --danger: #f87171;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-fg: var(--primary-fg);
+  --color-danger: var(--danger);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  font-size: 14px;
+}
+.popup-frame {
+  width: 380px;
+  height: 580px;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .fade-in {
+    animation: fade-in 120ms ease-out;
+  }
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(2px);
+    }
+  }
+}

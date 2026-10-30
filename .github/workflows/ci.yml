@@ -24,6 +24,10 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm build
       - run: pnpm test
+      - name: Extension e2e (Chromium, two profiles)
+        run: |
+          pnpm --filter @voult/extension exec playwright install --with-deps chromium
+          xvfb-run -a pnpm --filter @voult/extension e2e
       # zod <4.6.6 inside @expo/cli (build tooling, not shipped) is flagged high; tighten to
       # `high` once Expo bumps it.
       - name: Dependency audit
