@@ -13,3 +13,5 @@ coverage
 android
 ios
 *.tsbuildinfo
+test-results
+playwright-report
