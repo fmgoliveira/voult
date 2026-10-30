@@ -1,0 +1,17 @@
+{
+  "expo": {
+    "name": "Voult",
+    "slug": "voult",
+    "scheme": "voult",
+    "version": "0.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "platforms": ["android"],
+    "android": {
+      "package": "com.franciscoliveira.voult",
+      "minSdkVersion": 26
+    },
+    "plugins": ["expo-router", "expo-dev-client"],
+    "experiments": { "typedRoutes": true }
+  }
+}

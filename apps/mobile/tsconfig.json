@@ -1,0 +1,6 @@
+{
+  "extends": ["expo/tsconfig.base", "@voult/config/tsconfig.base.json"],
+  "compilerOptions": { "jsx": "react-native", "lib": ["ES2023"], "noEmit": true },
+  "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"],
+  "exclude": ["node_modules"]
+}

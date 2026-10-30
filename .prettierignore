@@ -1,0 +1,6 @@
+docs
+pnpm-lock.yaml
+dist
+.output
+.wxt
+.turbo

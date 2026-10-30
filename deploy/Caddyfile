@@ -1,0 +1,3 @@
+voult.franciscoliveira.com {
+	reverse_proxy server:8787
+}

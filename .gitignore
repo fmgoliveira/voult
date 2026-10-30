@@ -1,0 +1,15 @@
+node_modules
+dist
+.output
+.wxt
+.turbo
+.expo
+coverage
+*.log
+.env
+.env.*
+!.env.example
+/data
+android
+ios
+*.tsbuildinfo

@@ -1,0 +1,14 @@
+{
+  "name": "@voult/config",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "exports": {
+    "./eslint": "./eslint.js",
+    "./vitest": {
+      "types": "./vitest.d.ts",
+      "default": "./vitest.js"
+    },
+    "./tsconfig.base.json": "./tsconfig.base.json"
+  }
+}
