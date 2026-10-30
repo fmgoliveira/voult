@@ -7,19 +7,11 @@ services:
     env_file: .env
     environment:
       NODE_ENV: production
+    ports:
+      # host:container. Point your reverse proxy at http://<docker-host>:6565
+      - '6565:8787'
     volumes:
       - voult-data:/data
-  caddy:
-    image: caddy:2
-    restart: unless-stopped
-    ports:
-      - '80:80'
-      - '443:443'
-    volumes:
-      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy-data:/data
-    depends_on: [server]
 
 volumes:
   voult-data:
-  caddy-data:

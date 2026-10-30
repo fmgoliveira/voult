@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Deployment
+
+- Removed Caddy; Docker Compose publishes the server on host port 6565 for your own reverse proxy
+- Added `docs/INSTALL.md` (server, reverse proxy, extension) and a `zip` script for the extension
+
 ### Phase 5 — Autofill + passkeys (extension)
 
 - Form detection heuristics (login, username-only step, register, change-password, OTP incl. split boxes), open shadow DOM and iframes; inline field icon + dropdown rendered in a closed shadow root that ignores scripted clicks
