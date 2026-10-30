@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { itemSchema } from '../vault/schemas';
 import { hostOf, matchesText, queryItems, type ListQuery } from './search';
+import { blankItem } from './blank-item';
 import { normalizeServerUrl } from './server-url';
 import { parseTotpInput } from './totp-input';
 import type { ItemView } from './types';
@@ -81,5 +82,17 @@ describe('normalizeServerUrl', () => {
     expect(normalizeServerUrl('http://127.0.0.1:1')).toBe('http://127.0.0.1:1');
     expect(() => normalizeServerUrl('http://vault.example.com')).toThrow('https');
     expect(() => normalizeServerUrl('nonsense')).toThrow();
+  });
+});
+
+describe('blankItem', () => {
+  it('produces a valid-shaped empty item for every type', () => {
+    for (const type of ['login', 'note', 'card', 'identity', 'totp'] as const) {
+      const i = blankItem(type);
+      expect(i.type).toBe(type);
+      expect(i.title).toBe('');
+    }
+    const t = blankItem('totp');
+    expect(t.type === 'totp' && t.totp.algorithm).toBe('SHA1');
   });
 });

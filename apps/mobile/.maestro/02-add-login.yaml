@@ -1,0 +1,28 @@
+# Starts from an unlocked, empty vault (run after 01). Adds a login and checks the detail screen.
+appId: com.franciscoliveira.voult
+---
+- launchApp
+- tapOn:
+    id: add-item
+- tapOn:
+    id: new-login
+- tapOn:
+    id: input-title
+- inputText: GitHub
+- tapOn:
+    id: input-username
+- inputText: octocat
+- tapOn:
+    id: input-password
+- inputText: S3cret-pass!
+- hideKeyboard
+- tapOn:
+    id: save
+- assertVisible:
+    id: detail-title
+- assertVisible: 'GitHub'
+- assertVisible: 'octocat'
+# Password is masked until revealed.
+- assertNotVisible: 'S3cret-pass!'
+- tapOn: 'Show Password'
+- assertVisible: 'S3cret-pass!'

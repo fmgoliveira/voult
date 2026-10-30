@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Phase 6 — Android app MVP
+
+- `@voult/core` gains a platform-neutral client: `ClientStore` contract, HTTP with rotating refresh, sync engine (push/pull/409 merge), vault client, account service, search + form helpers; pluggable Argon2id. The browser extension now runs on it (e2e unchanged and green)
+- Expo Router app: onboarding, mandatory recovery kit, unlock (master password / biometric / PIN), vault list + detail + edit, trash, generator, authenticator with live codes and **camera QR scan**, settings, device list
+- SQLite store (`expo-sqlite`) with the same contract tests; tokens in `expo-secure-store`
+- Kotlin Expo module `voult-native`: native Argon2id, Keystore keys (biometric-gated and device-bound), `FLAG_SECURE`, sensitive clipboard copy with auto-clear
+- Maestro flows and `docs/ANDROID.md`. **Not yet compiled or run on a device** (no Android SDK available)
+
 ### Deployment
 
 - Removed Caddy; Docker Compose publishes the server on host port 6565 for your own reverse proxy

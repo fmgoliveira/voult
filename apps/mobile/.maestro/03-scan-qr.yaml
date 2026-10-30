@@ -1,0 +1,18 @@
+# Opens the QR scanner (camera permission prompt included). Scanning a real code is a manual
+# check against a reference authenticator, see docs/ANDROID.md.
+appId: com.franciscoliveira.voult
+---
+- launchApp
+- tapOn:
+    id: tab-codes
+- tapOn:
+    id: scan-qr
+- tapOn:
+    text: 'Allow camera'
+    optional: true
+- tapOn:
+    text: 'While using the app'
+    optional: true
+- assertVisible: 'Cancel'
+- tapOn: 'Cancel'
+- assertVisible: 'No 2FA codes yet'

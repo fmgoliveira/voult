@@ -10,8 +10,8 @@ coverage
 .env.*
 !.env.example
 /data
-android
-ios
+/apps/mobile/android
+/apps/mobile/ios
 *.tsbuildinfo
 test-results
 playwright-report
