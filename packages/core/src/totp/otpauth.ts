@@ -1,5 +1,5 @@
 import { totpSchema, type Totp } from '../vault/schemas';
-import { base32Encode } from './totp';
+import { base32Decode, base32Encode } from './totp';
 
 /** Parse an `otpauth://totp|hotp/Label?secret=...` URI into a Totp entry. */
 export function parseOtpauthUri(uri: string): Totp {
@@ -11,6 +11,7 @@ export function parseOtpauthUri(uri: string): Totp {
   const q = url.searchParams;
   const secret = q.get('secret');
   if (!secret) throw new Error('missing secret');
+  base32Decode(secret); // throws on invalid base32
 
   const label = decodeURIComponent(url.pathname.replace(/^\//, ''));
   const colon = label.indexOf(':');
