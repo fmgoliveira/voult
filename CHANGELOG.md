@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### Phase 3 — Sync server
+
+- Hono + SQLite (Drizzle) server: signup (closes after first account unless `MULTI_USER=true`), login, rotating refresh tokens with reuse detection, per-device sessions and revoke, change password (drops other devices)
+- Auth key re-hashed with Argon2id at rest; fake prelogin for unknown emails; login limited to 5/min/IP
+- Vault/item CRUD with per-user `rev`, `If-Match` optimistic concurrency (409 returns the current record), `/sync?since=`, trash purge job
+- WebSocket "rev changed" push (token sent in first message, never in the URL)
+- Items carry a client-chosen `version` (AAD) separate from the server `rev`; core snapshot updated accordingly
+- Server is bundled with esbuild; Docker image installs only `better-sqlite3` natively
+
 ### Phase 2 — Core library (`@voult/core`)
 
 - Key hierarchy: Argon2id (hash-wasm) -> HKDF auth/enc keys -> account key -> vault keys -> item keys; XChaCha20-Poly1305 with id+version AAD; recovery secret key; master-password change re-wraps only the account key

@@ -35,6 +35,8 @@ export const snapshotSchema = z.object({
       type: z.string(),
       wrappedItemKey: z.string(),
       ciphertext: z.string(),
+      /** Client-chosen item version, bound into the AAD. */
+      version: z.number().int().positive(),
       rev: z.number().int(),
       updatedAt: z.number().int(),
       deletedAt: z.number().int().nullable().default(null),
@@ -59,7 +61,16 @@ export function snapshotChecksum(s: Snapshot): string {
       .map((v) => [v.id, v.wrappedVaultKey, v.encMeta, v.deletedAt])
       .sort((a, b) => String(a[0]).localeCompare(String(b[0]))),
     s.items
-      .map((i) => [i.id, i.vaultId, i.type, i.wrappedItemKey, i.ciphertext, i.rev, i.deletedAt])
+      .map((i) => [
+        i.id,
+        i.vaultId,
+        i.type,
+        i.wrappedItemKey,
+        i.ciphertext,
+        i.version,
+        i.rev,
+        i.deletedAt,
+      ])
       .sort((a, b) => String(a[0]).localeCompare(String(b[0]))),
   ]);
   return toBase64Url(sha256(utf8(canon)));
@@ -95,7 +106,7 @@ export async function openSnapshot(
     const items = snapshot.items
       .filter((i) => i.vaultId === v.id)
       .map((i) => {
-        const item = decryptItem(vaultKey, i.id, i.rev, i);
+        const item = decryptItem(vaultKey, i.id, i.version, i);
         counts.items++;
         if (item.type === 'totp' || (item.type === 'login' && item.totp)) counts.totp++;
         if (item.type === 'login') counts.passkeys += item.passkeys.length;
