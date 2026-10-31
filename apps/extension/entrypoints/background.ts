@@ -154,7 +154,7 @@ export default defineBackground(() => {
       case 'prompt:get':
         return isExtensionPage(sender) ? getPromptRequest(msg.id) : null;
       case 'prompt:decide':
-        if (isExtensionPage(sender)) decidePrompt(msg.id, msg.decision);
+        if (isExtensionPage(sender)) decidePrompt(msg.id, msg.decision, sender);
         return null;
       case 'prompt:dismiss':
         dismissPrompt(msg.id, sender);

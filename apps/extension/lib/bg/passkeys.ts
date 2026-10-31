@@ -37,9 +37,21 @@ export function getPromptRequest(id: string): PromptRequest | null {
   return prompts.get(id)?.request ?? null;
 }
 
-export function decidePrompt(id: string, decision: PromptDecision): void {
+/** Closes the in-page prompt of the sender's tab (used when its request is already gone). */
+function hideFor(sender: Sender): void {
+  if (sender.tab?.id !== undefined)
+    void browser.tabs
+      .sendMessage(sender.tab.id, { type: 'prompt:hide' }, { frameId: 0 })
+      .catch(() => undefined);
+}
+
+export function decidePrompt(id: string, decision: PromptDecision, sender?: Sender): void {
   const p = prompts.get(id);
-  if (!p) return;
+  if (!p) {
+    // Expired (or the worker restarted): nothing to resolve, but the frame must still go away.
+    if (sender) hideFor(sender);
+    return;
+  }
   prompts.delete(id);
   p.resolve(decision);
   if (p.windowId !== undefined) void browser.windows.remove(p.windowId).catch(() => undefined);
@@ -52,7 +64,8 @@ export function decidePrompt(id: string, decision: PromptDecision): void {
 /** The page's backdrop was clicked: only the tab showing that prompt may cancel it. */
 export function dismissPrompt(id: string, sender: Sender): void {
   const p = prompts.get(id);
-  if (p && p.tabId !== undefined && p.tabId === sender.tab?.id && sender.frameId === 0)
+  if (!p) return hideFor(sender);
+  if (p.tabId !== undefined && p.tabId === sender.tab?.id && sender.frameId === 0)
     decidePrompt(id, { action: 'cancel' });
 }
 
