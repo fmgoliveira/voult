@@ -2,6 +2,10 @@ name: Release
 
 # Push a tag like v1.0.0 to build and publish: signed Android APK, Chrome and Firefox extension
 # packages, a signed Firefox .xpi with its updates.json, and (optionally) a Chrome Web Store upload.
+#
+# Only what changed since the previous tag is rebuilt: Android when apps/mobile or shared code
+# changed, the extension when apps/extension or shared code changed. Files of the part that was not
+# rebuilt are copied unchanged from the previous release, so every release still lists everything.
 on:
   push:
     tags: ['v*.*.*']
@@ -10,6 +14,37 @@ permissions:
   contents: write
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      previous: ${{ steps.diff.outputs.previous }}
+      extension: ${{ steps.diff.outputs.extension }}
+      android: ${{ steps.diff.outputs.android }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - id: diff
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PREV=$(git tag --list 'v*.*.*' --sort=-v:refname | grep -vx "$GITHUB_REF_NAME" | head -n1 || true)
+          EXT=true; AND=true
+          if [ -n "$PREV" ]; then
+            # Shared code, dependencies and this workflow affect both apps.
+            CHANGED=$(git diff --name-only "$PREV" "$GITHUB_SHA")
+            SHARED='^(packages/|pnpm-lock\.yaml$|pnpm-workspace\.yaml$|package\.json$|scripts/|\.github/workflows/release\.yml$)'
+            echo "$CHANGED" | grep -qE "$SHARED|^apps/extension/" || EXT=false
+            echo "$CHANGED" | grep -qE "$SHARED|^apps/mobile/" || AND=false
+            # Never skip a part whose files the previous release does not have to reuse.
+            ASSETS=$(gh release view "$PREV" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' || true)
+            echo "$ASSETS" | grep -q -- '-chrome\.zip$' || EXT=true
+            echo "$ASSETS" | grep -q -- '\.apk$' || AND=true
+          fi
+          echo "previous=$PREV" >> "$GITHUB_OUTPUT"
+          echo "extension=$EXT" >> "$GITHUB_OUTPUT"
+          echo "android=$AND" >> "$GITHUB_OUTPUT"
+          echo "previous tag: ${PREV:-none}; rebuild extension: $EXT; rebuild android: $AND"
+
   checks:
     runs-on: ubuntu-latest
     steps:
@@ -24,7 +59,8 @@ jobs:
       - run: pnpm audit --prod --audit-level high
 
   extension:
-    needs: checks
+    needs: [changes, checks]
+    if: needs.changes.outputs.extension == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -77,7 +113,8 @@ jobs:
             signed/updates.json
 
   android:
-    needs: checks
+    needs: [changes, checks]
+    if: needs.changes.outputs.android == 'true'
     runs-on: ubuntu-latest
     env:
       KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
@@ -139,14 +176,25 @@ jobs:
           npx --yes chrome-webstore-upload-cli@3 upload --source "$ZIP" --auto-publish false
 
   publish:
-    needs: [extension, firefox-sign, android]
+    needs: [changes, extension, firefox-sign, android]
+    # Runs when each part was either built or deliberately skipped, not when something failed.
+    if: ${{ !cancelled() && !contains(needs.*.result, 'failure') }}
     runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PREVIOUS: ${{ needs.changes.outputs.previous }}
     steps:
       - uses: actions/download-artifact@v4
         with: { path: assets, merge-multiple: true }
-      - name: Create the GitHub release
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Reuse the extension files from the previous release
+        if: needs.changes.outputs.extension != 'true'
         run: |
-          gh release create "$GITHUB_REF_NAME" assets/* --repo "$GITHUB_REPOSITORY" \
-            --title "Voult ${GITHUB_REF_NAME#v}" --generate-notes
+          gh release download "$PREVIOUS" --repo "$GITHUB_REPOSITORY" --dir assets             --pattern 'voult-*-chrome.zip' --pattern 'voult-*-firefox.zip'
+          # Only present when that release was signed on AMO.
+          gh release download "$PREVIOUS" --repo "$GITHUB_REPOSITORY" --dir assets             --pattern 'voult-firefox.xpi' --pattern 'updates.json' || true
+      - name: Reuse the Android APK from the previous release
+        if: needs.changes.outputs.android != 'true'
+        run: gh release download "$PREVIOUS" --repo "$GITHUB_REPOSITORY" --dir assets --pattern 'voult-*.apk'
+      - name: Create the GitHub release
+        run: |
+          gh release create "$GITHUB_REF_NAME" assets/* --repo "$GITHUB_REPOSITORY"             --title "Voult ${GITHUB_REF_NAME#v}" --generate-notes

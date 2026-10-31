@@ -14,6 +14,7 @@ export function isNewerVersion(latest: string, current: string): boolean {
 }
 
 export interface LatestRelease {
+  /** Version of the APK when the release has one (a release that only changed the extension reuses the previous APK), else of the tag. */
   version: string;
   url: string;
   /** Direct link to the APK asset, when the release has one. */
@@ -37,8 +38,9 @@ export function parseLatestRelease(json: unknown): LatestRelease | null {
   const url = https(r.html_url);
   if (!url) return null;
   const apk = r.assets?.find((a) => a.name?.endsWith('.apk'));
+  const apkVersion = /(\d+\.\d+\.\d+)\.apk$/.exec(apk?.name ?? '')?.[1];
   return {
-    version: r.tag_name.replace(/^v/, ''),
+    version: apkVersion ?? r.tag_name.replace(/^v/, ''),
     url,
     apkUrl: https(apk?.browser_download_url),
     notes: (r.body ?? '').slice(0, 2000),
