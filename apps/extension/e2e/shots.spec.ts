@@ -42,7 +42,11 @@ test('capture screens', async () => {
   await popup.getByRole('button', { name: 'Back' }).click();
   await addLogin(popup, { title: 'Bank of Oslo', username: 'f.oliveira', password: 'x' });
   await popup.getByRole('button', { name: 'Back' }).click();
-  await expect(popup.getByTestId('item-row')).toHaveCount(3);
+  await addLogin(popup, { title: 'Spotify', username: 'f.oliveira', password: 'x' });
+  await popup.getByRole('button', { name: 'Back' }).click();
+  await addLogin(popup, { title: 'Cloudflare', username: 'f@example.com', password: 'x' });
+  await popup.getByRole('button', { name: 'Back' }).click();
+  await expect(popup.getByTestId('item-row')).toHaveCount(5);
   await shot('05-list');
 
   await popup.getByRole('button', { name: 'Add item' }).click();
