@@ -117,7 +117,7 @@ export function CheckRow({
           marginTop: 1,
         }}
       >
-        {value ? <Ionicons name="checkmark" size={16} color="#fff" /> : null}
+        {value ? <Ionicons name="checkmark" size={16} color={c.primaryForeground} /> : null}
       </View>
       <View style={{ flex: 1 }}>{children}</View>
     </Pressable>

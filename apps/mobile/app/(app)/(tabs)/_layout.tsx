@@ -3,14 +3,16 @@ import { Tabs } from 'expo-router';
 import { Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import type { MessageKey } from '@voult/core';
+import { useT } from '../../../src/lib/i18n';
 import { Glass } from '../../../src/ui/kit';
 import { useTheme } from '../../../src/ui/theme';
 
-const TABS: Record<string, { label: string; icon: keyof typeof Ionicons.glyphMap }> = {
-  index: { label: 'Vault', icon: 'lock-closed' },
-  codes: { label: 'Codes', icon: 'shield-checkmark' },
-  generator: { label: 'Generate', icon: 'key' },
-  settings: { label: 'Settings', icon: 'settings' },
+const TABS: Record<string, { label: MessageKey; icon: keyof typeof Ionicons.glyphMap }> = {
+  index: { label: 'nav.vault', icon: 'lock-closed' },
+  codes: { label: 'nav.codes', icon: 'shield-checkmark' },
+  generator: { label: 'nav.generate', icon: 'key' },
+  settings: { label: 'nav.settings', icon: 'settings' },
 };
 
 interface BarProps {
@@ -27,6 +29,7 @@ interface BarProps {
 /** Floating glass pill instead of the default full-width bar. */
 function FloatingTabBar({ state, emitter, navigateToTab }: BarProps) {
   const { c, brand } = useTheme();
+  const t = useT();
   const insets = useSafeAreaInsets();
   return (
     <View
@@ -56,7 +59,7 @@ function FloatingTabBar({ state, emitter, navigateToTab }: BarProps) {
                 color={active ? '#fff' : c.muted}
               />
               <Text style={{ color: active ? '#fff' : c.muted, fontSize: 11, fontWeight: '700' }}>
-                {meta.label}
+                {t(meta.label)}
               </Text>
             </>
           );
@@ -65,7 +68,7 @@ function FloatingTabBar({ state, emitter, navigateToTab }: BarProps) {
               key={route.key}
               testID={`tab-${route.name === 'index' ? 'vault' : route.name}`}
               accessibilityRole="tab"
-              accessibilityLabel={meta.label}
+              accessibilityLabel={t(meta.label)}
               accessibilityState={{ selected: active }}
               onPress={onPress}
               style={{ flex: 1 }}

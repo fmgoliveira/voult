@@ -10,3 +10,5 @@ nodeLinker: hoisted
 overrides:
   react: 19.3.0
   react-dom: 19.3.0
+  # @expo/cli (build tooling only, never shipped) bundles a zod with a memory-exhaustion advisory.
+  zod: ^4.6.7

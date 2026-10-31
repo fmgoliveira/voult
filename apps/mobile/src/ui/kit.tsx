@@ -268,7 +268,7 @@ export function Button({
   const off = disabled || busy;
   const fg =
     variant === 'primary' || variant === 'danger'
-      ? '#fff'
+      ? c.primaryForeground
       : variant === 'ghost'
         ? c.primary
         : c.foreground;
@@ -530,9 +530,17 @@ export function Chip({
   const { c, brand } = useTheme();
   const inner = (
     <>
-      {icon ? <Ionicons name={icon} size={14} color={active ? '#fff' : c.muted} /> : null}
+      {icon ? (
+        <Ionicons name={icon} size={14} color={active ? c.primaryForeground : c.muted} />
+      ) : null}
       {label ? (
-        <Text style={{ color: active ? '#fff' : c.foreground, fontSize: 13, fontWeight: '600' }}>
+        <Text
+          style={{
+            color: active ? c.primaryForeground : c.foreground,
+            fontSize: 13,
+            fontWeight: '600',
+          }}
+        >
           {label}
         </Text>
       ) : null}
@@ -573,11 +581,23 @@ const SECTION_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
   Security: 'shield-checkmark-outline',
   Appearance: 'color-palette-outline',
   Backup: 'cloud-upload-outline',
+  'Password health': 'heart-outline',
+  Import: 'download-outline',
+  About: 'information-circle-outline',
   Devices: 'phone-portrait-outline',
   'Autofill & passkeys': 'key-outline',
 };
 
-export function Section({ title, children }: { title: string; children: ReactNode }) {
+export function Section({
+  title,
+  label,
+  children,
+}: {
+  title: string;
+  /** Translated heading; `title` stays the stable key for the icon. */
+  label?: string;
+  children: ReactNode;
+}) {
   const { c, brand } = useTheme();
   return (
     <Glass style={{ padding: 16, gap: 14, marginTop: 12 }}>
@@ -603,7 +623,7 @@ export function Section({ title, children }: { title: string; children: ReactNod
             textTransform: 'uppercase',
           }}
         >
-          {title}
+          {label ?? title}
         </Text>
       </View>
       {children}

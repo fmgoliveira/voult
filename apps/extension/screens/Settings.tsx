@@ -1,5 +1,7 @@
 import {
   CloudUpload,
+  FileUp,
+  HeartPulse,
   Fingerprint,
   MonitorSmartphone,
   Palette,
@@ -19,7 +21,11 @@ import {
   useToast,
 } from '../components/ui';
 import { requestOk } from '../lib/api';
+import type { ItemView, VaultView } from '@voult/core';
+import { useT } from '../lib/i18n';
 import { BackupPanel } from './Backup';
+import { HealthPanel } from './Health';
+import { ImportPanel } from './Import';
 import { db } from '../lib/db';
 import { useAsyncAction, type Status } from '../lib/hooks';
 import { updateSettings, type Settings } from '../lib/settings';
@@ -51,11 +57,22 @@ const SECTION_ICON: Record<string, LucideIcon> = {
   Security: ShieldCheck,
   'Autofill & passkeys': Fingerprint,
   Backup: CloudUpload,
+  'Password health': HeartPulse,
+  Import: FileUp,
   Appearance: Palette,
   Devices: MonitorSmartphone,
 };
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({
+  title,
+  label,
+  children,
+}: {
+  title: string;
+  /** Translated heading; `title` stays the stable key for the icon. */
+  label?: string;
+  children: React.ReactNode;
+}) {
   const Icon = SECTION_ICON[title] ?? ShieldCheck;
   return (
     <section className="glass space-y-3 rounded-2xl p-4 text-sm">
@@ -63,7 +80,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
         <span className="brand-bg grid size-6 place-items-center rounded-lg">
           <Icon size={13} />
         </span>
-        {title}
+        {label ?? title}
       </h3>
       {children}
     </section>
@@ -144,7 +161,18 @@ function ChangePassword() {
   );
 }
 
-export function SettingsTab({ settings, status }: { settings: Settings; status: Status }) {
+export function SettingsTab({
+  settings,
+  status,
+  items,
+  vaults,
+}: {
+  settings: Settings;
+  status: Status;
+  items: ItemView[];
+  vaults: VaultView[];
+}) {
+  const t = useT();
   const [devices, setDevices] = useState<Device[]>([]);
   const [pinDraft, setPinDraft] = useState('');
   const [syncMsg, setSyncMsg] = useState('');
@@ -161,13 +189,13 @@ export function SettingsTab({ settings, status }: { settings: Settings; status: 
 
   return (
     <div className="fade-in flex-1 space-y-3 overflow-auto px-4 pb-3">
-      <Section title="Account">
-        <Row label="Signed in as">
+      <Section title="Account" label={t('settings.account')}>
+        <Row label={t('settings.signedInAs')}>
           <span className="truncate text-muted" data-testid="account-email">
             {status.email}
           </span>
         </Row>
-        <Row label="Server">
+        <Row label={t('settings.server')}>
           <span className="truncate text-xs text-muted">{settings.serverUrl}</span>
         </Row>
         <Row label={pending ? `${pending} change(s) waiting to sync` : 'Everything synced'}>
@@ -185,7 +213,7 @@ export function SettingsTab({ settings, status }: { settings: Settings; status: 
               })
             }
           >
-            Sync now
+            {t('settings.syncNow')}
           </Button>
         </Row>
         {syncMsg && (
@@ -195,8 +223,8 @@ export function SettingsTab({ settings, status }: { settings: Settings; status: 
         )}
       </Section>
 
-      <Section title="Security">
-        <Row label="Auto-lock">
+      <Section title="Security" label={t('settings.security')}>
+        <Row label={t('settings.autoLock')}>
           <Select
             aria-label="Auto-lock"
             value={settings.autoLockMinutes}
@@ -209,7 +237,7 @@ export function SettingsTab({ settings, status }: { settings: Settings; status: 
             <option value={0}>Browser close only</option>
           </Select>
         </Row>
-        <Row label="Clear clipboard">
+        <Row label={t('settings.clipboard')}>
           <Select
             aria-label="Clear clipboard"
             value={settings.clipboardClearSeconds}
@@ -259,11 +287,11 @@ export function SettingsTab({ settings, status }: { settings: Settings; status: 
         </p>
         <ChangePassword />
         <Button variant="secondary" className="w-full" onClick={() => void lock()}>
-          Lock now
+          {t('settings.lockNow')}
         </Button>
       </Section>
 
-      <Section title="Autofill & passkeys">
+      <Section title="Autofill & passkeys" label={t('settings.autofill')}>
         <Row label="Autofill logins">
           <Switch
             label="Autofill logins"
@@ -306,12 +334,20 @@ export function SettingsTab({ settings, status }: { settings: Settings; status: 
         </p>
       </Section>
 
-      <Section title="Backup">
+      <Section title="Password health" label={t('settings.health')}>
+        <HealthPanel items={items} />
+      </Section>
+
+      <Section title="Import" label={t('settings.import')}>
+        <ImportPanel vaults={vaults} />
+      </Section>
+
+      <Section title="Backup" label={t('settings.backup')}>
         <BackupPanel />
       </Section>
 
-      <Section title="Appearance">
-        <Row label="Theme">
+      <Section title="Appearance" label={t('settings.appearance')}>
+        <Row label={t('settings.theme')}>
           <Select
             aria-label="Theme"
             value={settings.theme}
@@ -320,6 +356,17 @@ export function SettingsTab({ settings, status }: { settings: Settings; status: 
             <option value="system">System</option>
             <option value="light">Light</option>
             <option value="dark">Dark</option>
+          </Select>
+        </Row>
+        <Row label={t('common.language')}>
+          <Select
+            aria-label={t('common.language')}
+            value={settings.language}
+            onChange={(e) => set({ language: e.target.value as Settings['language'] })}
+          >
+            <option value="system">{t('lang.system')}</option>
+            <option value="en">English</option>
+            <option value="pt">Português</option>
           </Select>
         </Row>
         <Row label="Website icons">
@@ -346,7 +393,7 @@ export function SettingsTab({ settings, status }: { settings: Settings; status: 
         </p>
       </Section>
 
-      <Section title="Devices">
+      <Section title="Devices" label={t('settings.devices')}>
         <ul className="space-y-2">
           {devices.map((d) => (
             <li key={d.id} className="flex items-center justify-between gap-2">
@@ -363,7 +410,7 @@ export function SettingsTab({ settings, status }: { settings: Settings; status: 
                   className="text-danger"
                   onClick={() => void requestOk('DELETE', `/devices/${d.id}`).then(loadDevices)}
                 >
-                  Revoke
+                  {t('settings.revoke')}
                 </Button>
               )}
             </li>
@@ -381,7 +428,7 @@ export function SettingsTab({ settings, status }: { settings: Settings; status: 
             ) && void signOut()
           }
         >
-          Sign out
+          {t('settings.signOut')}
         </Button>
       </div>
     </div>

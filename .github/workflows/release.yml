@@ -1,0 +1,147 @@
+name: Release
+
+# Push a tag like v1.0.0 to build and publish: signed Android APK, Chrome and Firefox extension
+# packages, a signed Firefox .xpi with its updates.json, and (optionally) a Chrome Web Store upload.
+on:
+  push:
+    tags: ['v*.*.*']
+
+permissions:
+  contents: write
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm audit --prod --audit-level high
+
+  extension:
+    needs: checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: node scripts/release-metadata.mjs set-version "${GITHUB_REF_NAME#v}"
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @voult/core build
+      - run: pnpm --filter @voult/extension zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: extension
+          path: apps/extension/.output/*.zip
+
+  firefox-sign:
+    # Needs AMO API credentials; the signing steps are skipped when they are not configured.
+    needs: extension
+    runs-on: ubuntu-latest
+    env:
+      AMO_JWT_ISSUER: ${{ secrets.AMO_JWT_ISSUER }}
+      AMO_JWT_SECRET: ${{ secrets.AMO_JWT_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - uses: actions/download-artifact@v4
+        with: { name: extension, path: dist }
+      - name: Sign on AMO (unlisted)
+        if: env.AMO_JWT_ISSUER != ''
+        run: |
+          mkdir signed
+          unzip -q dist/*-firefox.zip -d firefox-src
+          npx --yes web-ext@8 sign --source-dir firefox-src --artifacts-dir signed \
+            --channel unlisted --api-key "$AMO_JWT_ISSUER" --api-secret "$AMO_JWT_SECRET"
+          XPI=$(ls signed/*.xpi | head -n1)
+          cp "$XPI" signed/voult-firefox.xpi
+          SHA=$(sha256sum signed/voult-firefox.xpi | cut -d' ' -f1)
+          node scripts/release-metadata.mjs firefox-updates "${GITHUB_REF_NAME#v}" voult-firefox.xpi "$SHA" > signed/updates.json
+      - uses: actions/upload-artifact@v4
+        if: env.AMO_JWT_ISSUER != ''
+        with:
+          name: firefox-signed
+          path: |
+            signed/voult-firefox.xpi
+            signed/updates.json
+
+  android:
+    needs: checks
+    runs-on: ubuntu-latest
+    env:
+      KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+      KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 17 }
+      - run: node scripts/release-metadata.mjs set-version "${GITHUB_REF_NAME#v}"
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @voult/core build
+      - name: Accept Android licences
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+      - name: Prebuild and assemble the release APK
+        working-directory: apps/mobile
+        run: |
+          npx expo prebuild --platform android --no-install
+          cd android && ./gradlew assembleRelease --no-daemon
+      - name: Sign with the release key
+        working-directory: apps/mobile/android/app/build/outputs/apk/release
+        run: |
+          if [ -z "$KEYSTORE_B64" ]; then echo "No signing key configured: refusing to publish a debug-signed APK"; exit 1; fi
+          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.keystore"
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -n1)
+          "$BT/zipalign" -p -f 4 app-release.apk aligned.apk
+          "$BT/apksigner" sign --ks "$RUNNER_TEMP/release.keystore" --ks-key-alias "$KEY_ALIAS" \
+            --ks-pass env:KEYSTORE_PASSWORD --out "voult-${GITHUB_REF_NAME#v}.apk" aligned.apk
+          "$BT/apksigner" verify --print-certs "voult-${GITHUB_REF_NAME#v}.apk"
+          rm "$RUNNER_TEMP/release.keystore"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android
+          path: apps/mobile/android/app/build/outputs/apk/release/voult-*.apk
+
+  chrome-store:
+    # Uploads a draft to the (unlisted) Chrome Web Store item when credentials exist. Publishing
+    # stays a manual click in the dashboard.
+    needs: extension
+    runs-on: ubuntu-latest
+    env:
+      CWS_EXTENSION_ID: ${{ secrets.CWS_EXTENSION_ID }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { name: extension, path: dist }
+      - name: Upload draft
+        if: env.CWS_EXTENSION_ID != ''
+        env:
+          EXTENSION_ID: ${{ secrets.CWS_EXTENSION_ID }}
+          CLIENT_ID: ${{ secrets.CWS_CLIENT_ID }}
+          CLIENT_SECRET: ${{ secrets.CWS_CLIENT_SECRET }}
+          REFRESH_TOKEN: ${{ secrets.CWS_REFRESH_TOKEN }}
+        run: |
+          ZIP=$(ls dist/*-chrome.zip | head -n1)
+          npx --yes chrome-webstore-upload-cli@3 upload --source "$ZIP" --auto-publish false
+
+  publish:
+    needs: [extension, firefox-sign, android]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { path: assets, merge-multiple: true }
+      - name: Create the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" assets/* --repo "$GITHUB_REPOSITORY" \
+            --title "Voult ${GITHUB_REF_NAME#v}" --generate-notes

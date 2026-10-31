@@ -13,14 +13,14 @@
   --surface-strong: #ffffff;
   --surface-solid: #ffffff;
   --fg: #0f172a;
-  --muted: #64748b;
+  --muted: #586579;
   --border: rgba(15, 23, 42, 0.09);
   --border-strong: rgba(15, 23, 42, 0.18);
   --primary: #2563eb;
   --primary-fg: #ffffff;
   --accent: #0ea5e9;
   --danger: #dc2626;
-  --success: #059669;
+  --success: #047857;
   --brand: linear-gradient(135deg, #2f6df0 0%, #2563eb 100%);
   --brand-glow: rgba(37, 99, 235, 0.3);
   --shadow: 0 1px 2px rgba(15, 23, 42, 0.05), 0 4px 14px -8px rgba(15, 23, 42, 0.12);
@@ -40,7 +40,7 @@
   --border: rgba(148, 163, 200, 0.14);
   --border-strong: rgba(148, 163, 200, 0.26);
   --primary: #4f8cff;
-  --primary-fg: #ffffff;
+  --primary-fg: #071226;
   --accent: #38bdf8;
   --danger: #f87171;
   --success: #34d399;
@@ -125,7 +125,7 @@ html.embed *::-webkit-scrollbar {
 }
 .brand-bg {
   background: var(--brand);
-  color: #fff;
+  color: var(--primary-fg);
 }
 .brand-glow {
   box-shadow: 0 6px 16px -8px var(--brand-glow);

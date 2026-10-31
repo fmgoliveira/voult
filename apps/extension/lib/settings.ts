@@ -1,3 +1,4 @@
+import type { LangSetting } from '@voult/core';
 import { storage } from 'wxt/utils/storage';
 
 export interface Settings {
@@ -7,6 +8,7 @@ export interface Settings {
   /** 0 = never. */
   clipboardClearSeconds: number;
   theme: 'system' | 'light' | 'dark';
+  language: LangSetting;
   /** Offer a memory-only PIN for quick unlock. */
   pinEnabled: boolean;
   autofillEnabled: boolean;
@@ -28,6 +30,7 @@ export const DEFAULT_SETTINGS: Settings = {
   autoLockMinutes: 15,
   clipboardClearSeconds: 30,
   theme: 'system',
+  language: 'system',
   pinEnabled: false,
   autofillEnabled: true,
   neverSave: [],

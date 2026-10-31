@@ -49,7 +49,7 @@ export function Button({
         variant === 'primary' && 'brand-bg brand-glow hover:brightness-110',
         variant === 'secondary' && 'glass hover:bg-surface-strong',
         variant === 'ghost' && 'text-fg hover:bg-surface',
-        variant === 'danger' && 'bg-danger text-white hover:brightness-110',
+        variant === 'danger' && 'bg-danger text-primary-fg hover:brightness-110',
         className,
       )}
     >
@@ -297,7 +297,7 @@ export function Checkbox({
           'mt-px grid size-[18px] shrink-0 place-items-center rounded-md border transition-colors',
           'group-focus-visible:ring-2 group-focus-visible:ring-primary/40',
           checked
-            ? 'border-primary bg-primary text-white'
+            ? 'border-primary bg-primary text-primary-fg'
             : 'border-border-strong bg-surface group-hover:border-primary/60',
         )}
       >
