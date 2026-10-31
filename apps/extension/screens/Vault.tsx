@@ -142,7 +142,8 @@ function List({ items, vaults }: { items: ItemView[]; vaults: VaultView[] }) {
     [items, site],
   );
   // On a site we have logins for, start with just those; the chip removes the filter.
-  const siteOn = siteItems.length > 0 && !dismissed && !query.trash;
+  // Typing a search means looking beyond this site, so the filter steps aside until it is cleared.
+  const siteOn = siteItems.length > 0 && !dismissed && !query.trash && !query.text;
   const rows = useMemo(
     () => queryItems(siteOn ? siteItems : items, query),
     [items, siteItems, siteOn, query],
