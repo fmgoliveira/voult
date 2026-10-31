@@ -52,8 +52,20 @@ CREATE TABLE IF NOT EXISTS backups (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL,
   drive_file_id TEXT NOT NULL,
+  name TEXT NOT NULL DEFAULT '',
   size INTEGER NOT NULL,
   created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS backups_user ON backups (user_id, created_at);
+CREATE TABLE IF NOT EXISTS backup_settings (
+  user_id TEXT PRIMARY KEY,
+  refresh_token_enc TEXT NOT NULL,
+  folder_id TEXT,
+  google_email TEXT,
+  enabled INTEGER NOT NULL DEFAULT 1,
+  last_attempt_at INTEGER,
+  last_success_at INTEGER,
+  last_error TEXT
 );
 `;
 
@@ -63,6 +75,11 @@ export function openDb(path: string) {
   sqlite.pragma('journal_mode = WAL');
   sqlite.pragma('foreign_keys = ON');
   sqlite.exec(MIGRATION);
+  // Databases created before Phase 8 lack the backup file name.
+  const cols = sqlite.prepare('PRAGMA table_info(backups)').all() as { name: string }[];
+  if (!cols.some((c) => c.name === 'name')) {
+    sqlite.exec("ALTER TABLE backups ADD COLUMN name TEXT NOT NULL DEFAULT ''");
+  }
   return { sqlite, db: drizzle(sqlite, { schema }) };
 }
 

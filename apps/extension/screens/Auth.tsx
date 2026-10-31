@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Button, Checkbox, ErrorText, Field, Input, Logo, OtpInput } from '../components/ui';
 import { ApiError } from '../lib/api';
 import { useAsyncAction } from '../lib/hooks';
+import { RestoreWizard } from './Backup';
 import { buildRecoveryKitPdf, downloadBytes } from '../lib/recovery-kit';
 import { DEFAULT_SERVER_URL } from '../lib/settings';
 import {
@@ -58,7 +59,7 @@ const friendly = (e: unknown): string => {
 };
 
 export function Welcome() {
-  const [mode, setMode] = useState<'create' | 'signin'>('create');
+  const [mode, setMode] = useState<'create' | 'signin' | 'restore'>('create');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -78,6 +79,17 @@ export function Welcome() {
       }
     }, friendly);
   };
+
+  if (mode === 'restore') {
+    return (
+      <Shell
+        title="Restore from a backup"
+        subtitle="Uses only your master password. The server does not need to have the data."
+      >
+        <RestoreWizard onBack={() => setMode('signin')} />
+      </Shell>
+    );
+  }
 
   return (
     <Shell
@@ -165,6 +177,16 @@ export function Welcome() {
         }}
       >
         {mode === 'create' ? 'I already have an account' : 'Create a new account'}
+      </button>
+      <button
+        type="button"
+        className="w-full text-center text-xs font-semibold text-muted hover:underline"
+        onClick={() => {
+          setError(null);
+          setMode('restore');
+        }}
+      >
+        Restore from a backup file
       </button>
     </Shell>
   );

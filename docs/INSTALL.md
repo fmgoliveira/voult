@@ -33,6 +33,31 @@ openssl rand -hex 32     # paste the output as JWT_SECRET=
 | `MULTI_USER`  | `false`  | `false` closes signup after the first account (single-user). `true` lets anyone who can reach it sign up.    |
 | `TRUST_PROXY` | `true`   | Read the client IP from `X-Forwarded-For` for the 5-logins-per-minute limit. Keep `true` behind a proxy.    |
 
+### Google Drive backups (optional)
+
+The server can upload a daily encrypted snapshot to a "Voult Backups" folder in your Google Drive and keep the newest 30. Google only ever sees ciphertext, and Voult only gets the narrow `drive.file` scope (it can see just the files it creates).
+
+1. In [Google Cloud Console](https://console.cloud.google.com/) create a project, **enable the Google Drive API**, and configure the OAuth consent screen (External, add yourself as a test user, or publish it).
+2. **Credentials → Create credentials → OAuth client ID → Web application.** Add the authorised redirect URI `https://<your server>/backup/google/callback` (it must match `PUBLIC_URL`).
+3. Put these in `.env` and restart:
+
+| Variable                | Default | Meaning                                                              |
+| ----------------------- | ------- | -------------------------------------------------------------------- |
+| `GOOGLE_CLIENT_ID`      | none    | OAuth client ID.                                                     |
+| `GOOGLE_CLIENT_SECRET`  | none    | OAuth client secret.                                                 |
+| `PUBLIC_URL`            | none    | The https URL clients use for this server (builds the redirect URI). |
+| `BACKUP_INTERVAL_HOURS` | `24`    | How often each connected account is backed up.                       |
+| `BACKUP_RETENTION`      | `30`    | Snapshots kept in the Drive folder.                                  |
+
+4. In the extension or the Android app: **Settings → Backup → Connect Google Drive**, approve in the browser, then **Back up now** to test. The Drive refresh token is stored encrypted with a key derived from `JWT_SECRET`: if you change `JWT_SECRET`, reconnect Drive.
+
+### Restoring after losing the server
+
+You only need the master password and a backup file:
+
+1. Download the newest file from Drive (`Voult Backups` folder), or use one you exported from Settings → Backup.
+2. Start a fresh server (above), then in a fresh extension / app choose **Restore from a backup file**: pick the file, enter the master password, **Check backup** (shows the item / 2FA / passkey counts and a checksum), then **Restore to this server**. All your devices can then sign in with the same email and master password.
+
 Start it:
 
 ```bash

@@ -63,6 +63,19 @@ export const backups = sqliteTable('backups', {
   id: text('id').primaryKey(),
   userId: text('user_id').notNull(),
   driveFileId: text('drive_file_id').notNull(),
+  name: text('name').notNull().default(''),
   size: integer('size').notNull(),
   createdAt: integer('created_at').notNull(),
+});
+
+/** One row per user that connected Google Drive. The refresh token is encrypted at rest. */
+export const backupSettings = sqliteTable('backup_settings', {
+  userId: text('user_id').primaryKey(),
+  refreshTokenEnc: text('refresh_token_enc').notNull(),
+  folderId: text('folder_id'),
+  googleEmail: text('google_email'),
+  enabled: integer('enabled').notNull().default(1),
+  lastAttemptAt: integer('last_attempt_at'),
+  lastSuccessAt: integer('last_success_at'),
+  lastError: text('last_error'),
 });

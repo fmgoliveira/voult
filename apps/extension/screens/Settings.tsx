@@ -1,4 +1,5 @@
 import {
+  CloudUpload,
   Fingerprint,
   MonitorSmartphone,
   Palette,
@@ -18,6 +19,7 @@ import {
   useToast,
 } from '../components/ui';
 import { requestOk } from '../lib/api';
+import { BackupPanel } from './Backup';
 import { db } from '../lib/db';
 import { useAsyncAction, type Status } from '../lib/hooks';
 import { updateSettings, type Settings } from '../lib/settings';
@@ -48,6 +50,7 @@ const SECTION_ICON: Record<string, LucideIcon> = {
   Account: UserRound,
   Security: ShieldCheck,
   'Autofill & passkeys': Fingerprint,
+  Backup: CloudUpload,
   Appearance: Palette,
   Devices: MonitorSmartphone,
 };
@@ -301,6 +304,10 @@ export function SettingsTab({ settings, status }: { settings: Settings; status: 
           Shortcut: Ctrl/Cmd+Shift+L fills the login on the current page. Change it in your
           browser's extension shortcut settings.
         </p>
+      </Section>
+
+      <Section title="Backup">
+        <BackupPanel />
       </Section>
 
       <Section title="Appearance">

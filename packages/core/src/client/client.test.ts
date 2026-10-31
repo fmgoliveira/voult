@@ -4,6 +4,8 @@ import { deriveMasterKey, setArgon2Implementation } from '../crypto/kdf';
 import { itemSchema, type LoginItem } from '../vault/schemas';
 import { ApiError, SignedOutError, VaultLockedError, WrongPasswordError } from './errors';
 import { createTestClient, FakeServer } from './fake-server.testkit';
+import { parseSnapshot, serializeSnapshot, snapshotChecksum } from '../exchange/snapshot';
+import { snapshotFromStore } from '../exchange/local-snapshot';
 import { MemoryStore } from './memory-store';
 import { createMutexLock } from './store';
 
@@ -524,5 +526,77 @@ describe('vault client', () => {
       dirty: 0,
     });
     expect((await a.vault.loadVault()).items).toHaveLength(1);
+  });
+});
+
+describe('backup and restore', () => {
+  it('restores a snapshot onto a brand-new server with only the master password', async () => {
+    const { a, vaultId } = await ready();
+    await a.vault.saveItem(vaultId, login({ title: 'One', password: 'pw-one' }));
+    await a.vault.saveItem(
+      vaultId,
+      login({
+        title: 'Two',
+        totp: { secret: 'JBSWY3DPEHPK3PXP' },
+        passkeys: [
+          {
+            credentialId: 'c',
+            rpId: 'example.com',
+            userHandle: 'h',
+            privateKey: 'k',
+            signCount: 0,
+            createdAt: 1,
+          },
+        ],
+      }),
+    );
+    await a.sync.syncOnce();
+
+    // The snapshot is plain JSON text, exactly what a Drive file / .voult file contains.
+    const text = serializeSnapshot(await snapshotFromStore(a.store));
+    expect(text).not.toContain('pw-one');
+
+    // Fresh install, fresh (empty) server: the old one is gone.
+    const server2 = new FakeServer();
+    const b = createTestClient(server2);
+    await expect(
+      b.account.restoreFromSnapshot(parseSnapshot(text), {
+        password: 'wrong password',
+        serverUrl: 'https://new.test',
+      }),
+    ).rejects.toBeInstanceOf(WrongPasswordError);
+    expect(await b.account.hasAccount()).toBe(false);
+
+    const r = await b.account.restoreFromSnapshot(parseSnapshot(text), {
+      password: PASSWORD,
+      serverUrl: 'https://new.test',
+    });
+    expect(r.counts).toEqual({ items: 2, totp: 1, passkeys: 1 });
+    expect(r.checksum).toBe(snapshotChecksum(parseSnapshot(text)));
+    await b.sync.syncOnce();
+
+    const { items } = await b.vault.loadVault();
+    expect(items.map((i) => i.item.title).sort()).toEqual(['One', 'Two']);
+    expect((items.find((i) => i.item.title === 'One')!.item as LoginItem).password).toBe('pw-one');
+
+    // The new server holds the same records, so a second device can sign in with the same password.
+    const c = createTestClient(server2);
+    await c.account.signIn({ ...creds('https://new.test') });
+    await c.sync.syncOnce();
+    expect((await c.vault.loadVault()).items).toHaveLength(2);
+    // and its own snapshot matches the original byte for byte (checksums over the ciphertext).
+    expect(snapshotChecksum(await snapshotFromStore(b.store))).toBe(r.checksum);
+  });
+
+  it('needs an email for snapshots that lack one', async () => {
+    const { a } = await ready();
+    const snap = await snapshotFromStore(a.store);
+    delete (snap as { email?: string }).email;
+    await expect(
+      createTestClient(new FakeServer()).account.restoreFromSnapshot(snap, {
+        password: PASSWORD,
+        serverUrl: 'https://new.test',
+      }),
+    ).rejects.toThrow('email_required');
   });
 });

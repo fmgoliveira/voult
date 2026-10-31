@@ -192,6 +192,11 @@ Tick these off and note anything that looks wrong.
     site by hand and accept the save prompt: Voult's new-login form opens prefilled.
 12. **Passkeys (Android 14+)** — enable Voult as a provider, then on <https://webauthn.io> register and
     sign in in Chrome. Sign in again from the extension to confirm they are shared.
+13. **Backup** — Settings → Backup: *Share encrypted backup file* saves/sends a `.voult` file (try
+    Google Drive from the share sheet). With the server's Google credentials set (docs/INSTALL.md),
+    *Connect Google Drive* opens the browser; then *Back up now*. To test restore: sign out, choose
+    *Restore from a backup file* on the welcome screen, pick the file (Drive appears in the picker),
+    enter the master password and check the item counts before restoring.
 
 ## 7. Troubleshooting
 

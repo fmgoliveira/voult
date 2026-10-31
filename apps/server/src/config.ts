@@ -13,6 +13,11 @@ export interface Config {
   loginLimitPerMin: number;
   /** Argon2id parameters for hashing the client auth key at rest. */
   serverKdf: { m: number; t: number; p: number };
+  /** Google Drive backups need an OAuth client (Web application) and the server's public URL. */
+  google: { clientId: string; clientSecret: string; publicUrl: string } | null;
+  backupIntervalHours: number;
+  /** Snapshots kept in the "Voult Backups" Drive folder. */
+  backupRetention: number;
 }
 
 export function loadConfig(env: Record<string, string | undefined> = process.env): Config {
@@ -31,5 +36,15 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     accessTtlSec: 15 * 60,
     loginLimitPerMin: 5,
     serverKdf: { m: 19 * 1024, t: 2, p: 1 },
+    google:
+      env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET && env.PUBLIC_URL
+        ? {
+            clientId: env.GOOGLE_CLIENT_ID,
+            clientSecret: env.GOOGLE_CLIENT_SECRET,
+            publicUrl: env.PUBLIC_URL.replace(/\/+$/, ''),
+          }
+        : null,
+    backupIntervalHours: Number(env.BACKUP_INTERVAL_HOURS ?? 24),
+    backupRetention: Number(env.BACKUP_RETENTION ?? 30),
   };
 }

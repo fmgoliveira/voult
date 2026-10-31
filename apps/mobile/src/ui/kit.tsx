@@ -572,6 +572,7 @@ const SECTION_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
   Account: 'person-outline',
   Security: 'shield-checkmark-outline',
   Appearance: 'color-palette-outline',
+  Backup: 'cloud-upload-outline',
   Devices: 'phone-portrait-outline',
   'Autofill & passkeys': 'key-outline',
 };
