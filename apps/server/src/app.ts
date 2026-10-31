@@ -11,9 +11,11 @@ import { devices } from './db/schema';
 import { Hub } from './hub';
 import type { Deps, Env } from './http';
 import { accountRoutes, authRoutes } from './routes/auth';
+import { backupCallbackRoute, backupRoutes } from './routes/backup';
 import { syncRoutes } from './routes/sync';
+import { createGoogleApi, type GoogleApi } from './backup/google';
 
-export function createApp(cfg: Config, db?: Db) {
+export function createApp(cfg: Config, db?: Db, google?: GoogleApi | null) {
   const handle = db ? { db } : { db: openDb(cfg.dbPath).db };
   const hub = new Hub();
   const deps: Deps = { cfg, db: handle.db, hub };
@@ -33,6 +35,9 @@ export function createApp(cfg: Config, db?: Db) {
 
   app.get('/health', (c) => c.json({ ok: true }));
   app.route('/auth', authRoutes(deps));
+  const googleApi = google !== undefined ? google : cfg.google ? createGoogleApi(cfg) : null;
+  const backupDeps = { cfg, db: handle.db, google: googleApi };
+  app.route('/', backupCallbackRoute(backupDeps));
 
   /** Resolves a bearer token to a live (non-revoked) device. */
   async function authenticate(token: string | undefined) {
@@ -86,7 +91,8 @@ export function createApp(cfg: Config, db?: Db) {
   });
   authed.route('/', accountRoutes(deps));
   authed.route('/', syncRoutes(deps));
+  authed.route('/', backupRoutes(backupDeps));
   app.route('/', authed);
 
-  return { app, hub, db: handle.db, injectWebSocket };
+  return { app, hub, db: handle.db, injectWebSocket, backupDeps };
 }

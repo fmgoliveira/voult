@@ -4,13 +4,14 @@ import { useApp } from '../src/lib/app-store';
 import { getRuntime } from '../src/lib/runtime';
 import { DEFAULT_SERVER_URL } from '../src/lib/settings';
 import { useAction } from '../src/ui/hooks';
+import { RestoreFlow } from '../src/ui/backup';
 import { Button, ErrorText, Field, Screen, AuthHero, Glass } from '../src/ui/kit';
 
 const MIN_PASSWORD = 12;
 
 export default function Welcome() {
   const refresh = useApp((s) => s.refresh);
-  const [mode, setMode] = useState<'create' | 'signin'>('create');
+  const [mode, setMode] = useState<'create' | 'signin' | 'restore'>('create');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -30,6 +31,27 @@ export default function Welcome() {
       }
       await refresh();
     });
+
+  if (mode === 'restore') {
+    return (
+      <Screen>
+        <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
+          <ScrollView
+            contentContainerStyle={{ padding: 24, gap: 16 }}
+            keyboardShouldPersistTaps="handled"
+          >
+            <AuthHero
+              title="Restore from a backup"
+              subtitle="Uses only your master password. The server does not need to have the data."
+            />
+            <Glass strong radius={26} style={{ padding: 20 }}>
+              <RestoreFlow onBack={() => setMode('signin')} onDone={() => void refresh()} />
+            </Glass>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </Screen>
+    );
+  }
 
   return (
     <Screen>
@@ -94,6 +116,14 @@ export default function Welcome() {
               onPress={() => {
                 setError(null);
                 setMode(mode === 'create' ? 'signin' : 'create');
+              }}
+            />
+            <Button
+              variant="ghost"
+              label="Restore from a backup file"
+              onPress={() => {
+                setError(null);
+                setMode('restore');
               }}
             />
           </Glass>

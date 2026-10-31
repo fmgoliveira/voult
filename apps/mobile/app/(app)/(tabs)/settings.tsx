@@ -5,6 +5,7 @@ import * as Native from '../../../modules/voult-native';
 import { friendlyError, useApp } from '../../../src/lib/app-store';
 import { getRuntime } from '../../../src/lib/runtime';
 import type { Settings } from '../../../src/lib/settings';
+import { BackupPanel } from '../../../src/ui/backup';
 import { useAction } from '../../../src/ui/hooks';
 import { ConfirmSheet, OtpInput, Toggle } from '../../../src/ui/controls';
 import { Button, Chip, ErrorText, Field, Screen, Section } from '../../../src/ui/kit';
@@ -322,6 +323,10 @@ export default function SettingsTab() {
         </Section>
 
         <AutofillSection />
+
+        <Section title="Backup">
+          <BackupPanel />
+        </Section>
 
         <Section title="Appearance">
           <Choices

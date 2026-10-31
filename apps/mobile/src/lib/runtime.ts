@@ -2,6 +2,7 @@ import '../polyfills';
 import {
   SignedOutError,
   createAccountService,
+  createBackupClient,
   createHttp,
   createMutexLock,
   createSyncEngine,
@@ -35,6 +36,7 @@ export interface Runtime {
   http: ReturnType<typeof createHttp>;
   accounts: ReturnType<typeof createAccountService>;
   vault: ReturnType<typeof createVaultClient>;
+  backup: ReturnType<typeof createBackupClient>;
   quick: ReturnType<typeof createQuickUnlock>;
   /** In-memory unlocked account key. */
   getAccountKey(): Promise<Uint8Array | null>;
@@ -114,6 +116,7 @@ async function create(): Promise<Runtime> {
     http,
     accounts,
     vault,
+    backup: createBackupClient(http),
     quick,
     getAccountKey: session.getAccountKey,
     setAccountKey: session.setAccountKey,

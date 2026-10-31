@@ -2,6 +2,9 @@ import {
   VaultLockedError,
   WrongPasswordError,
   createAccountService,
+  createBackupClient,
+  serializeSnapshot,
+  snapshotFromStore,
   createVaultClient,
   deriveMasterKey,
   fromBase64Url,
@@ -58,9 +61,18 @@ const accounts = createAccountService({
 
 const vault = createVaultClient({ store, getAccountKey, requestSync });
 
+/** Server-side Google Drive backups. */
+export const backup = createBackupClient(http);
+
+/** The vault as encrypted .voult file text (no key needed; nothing is decrypted). */
+export async function exportEncryptedBackup(): Promise<string> {
+  return serializeSnapshot(await snapshotFromStore(store));
+}
+
 export const {
   hasAccount,
   createNewAccount,
+  restoreFromSnapshot,
   signIn,
   reauthenticate,
   unlockWithRecoverySecret,

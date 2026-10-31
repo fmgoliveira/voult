@@ -12,6 +12,8 @@ export * from './totp/otpauth';
 export * from './exchange/csv';
 export * from './exchange/importers';
 export * from './exchange/snapshot';
+export * from './exchange/local-snapshot';
+export * from './client/backup-client';
 export * from './webauthn/authenticator';
 export * from './webauthn/credential-json';
 export { EFF_WORDLIST } from './wordlists/eff-large';

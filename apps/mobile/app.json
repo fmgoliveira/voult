@@ -24,8 +24,11 @@
           "cameraPermission": "Voult uses the camera only to scan 2FA QR codes.",
           "recordAudioAndroid": false
         }
-      ]
+      ],
+      "expo-sharing"
     ],
-    "experiments": { "typedRoutes": true }
+    "experiments": {
+      "typedRoutes": true
+    }
   }
 }

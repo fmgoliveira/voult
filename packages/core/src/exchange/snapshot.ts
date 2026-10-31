@@ -16,6 +16,8 @@ export const snapshotSchema = z.object({
   format: z.literal('voult-snapshot'),
   version: z.literal(1),
   createdAt: z.number().int(),
+  /** Account email, so a fresh install can recreate the account. Absent in older exports. */
+  email: z.string().optional(),
   kdfParams: kdfSchema,
   salt: z.string(),
   wrappedAccountKey: z.string(),
@@ -100,6 +102,11 @@ export async function openSnapshot(
         )
       : unlockWithRecovery(credential.recoverySecret, snapshot.wrappedRecoveryKey);
 
+  return openSnapshotWithKey(snapshot, accountKey);
+}
+
+/** Decrypt a snapshot with an already unlocked account key. */
+export function openSnapshotWithKey(snapshot: Snapshot, accountKey: Uint8Array): OpenedSnapshot {
   const counts = { items: 0, totp: 0, passkeys: 0 };
   const vaults = snapshot.vaults.map((v) => {
     const { vaultKey, meta } = openVault(accountKey, v);

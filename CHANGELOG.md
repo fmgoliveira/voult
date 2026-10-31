@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Phase 8 — Google Drive backup & restore
+
+- Server: connect a Google account (OAuth, `drive.file` scope), a daily job uploads a self-contained encrypted snapshot to the "Voult Backups" Drive folder and keeps the newest 30; failures are recorded (retry after an hour) and shown in the clients; the refresh token is encrypted at rest; env `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`/`PUBLIC_URL`
+- Extension and Android: Settings → Backup (connect, daily toggle, status/last error, Back up now, disconnect, export an encrypted `.voult` file); restore wizard on a fresh install from a Drive/local file with the master password only (shows item, 2FA and passkey counts plus a checksum before restoring, then recreates the account on any server)
+- Core: `snapshotFromStore`, `restoreFromSnapshot`, backup API client; snapshots now carry the account email (older files ask for it)
+
 ### Phase 7 — Android autofill + passkey provider
 
 - Kotlin `AutofillService` (one compact "Voult" row / keyboard chip that opens a bottom drawer with the matching logins, unlock, search, and "create new login" on sign-up forms; save prompt) reading an encrypted on-device index of labels and match keys; picking a suggestion opens a Voult screen over the other app that unlocks and decrypts only that login (works on a cold start)

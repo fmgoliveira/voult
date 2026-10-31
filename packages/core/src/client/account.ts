@@ -6,6 +6,7 @@ import {
   unlockWithRecovery,
 } from '../crypto/keys';
 import { DEFAULT_KDF_PARAMS } from '../crypto/kdf';
+import { openSnapshotWithKey, snapshotChecksum, type Snapshot } from '../exchange/snapshot';
 import { createVault } from '../vault/ops';
 import { VaultLockedError, WrongPasswordError } from './errors';
 import type { Http } from './http';
@@ -95,6 +96,88 @@ export function createAccountService(deps: AccountDeps) {
     await session.setPendingRecovery(created.recoverySecret);
     deps.requestSync();
     return { recoverySecret: created.recoverySecret };
+  }
+
+  /**
+   * Recreate an account from a snapshot (a Drive backup or .voult file) on a possibly brand-new
+   * server. Needs only the master password: the snapshot carries the salt, KDF parameters and
+   * wrapped keys, and every record is queued to upload as-is.
+   */
+  async function restoreFromSnapshot(
+    snapshot: Snapshot,
+    c: { password: string; serverUrl: string; email?: string },
+  ): Promise<{ counts: { items: number; totp: number; passkeys: number }; checksum: string }> {
+    const email = (c.email ?? snapshot.email ?? '').trim();
+    if (!email) throw new Error('email_required');
+    const serverUrl = deps.normalizeServerUrl(c.serverUrl);
+    const { authKey, kek } = await deriveLogin(c.password, snapshot.salt, snapshot.kdfParams);
+    let accountKey: Uint8Array;
+    try {
+      accountKey = unlockAccountKey(kek, snapshot.wrappedAccountKey);
+    } catch {
+      throw new WrongPasswordError();
+    }
+    // Decrypting everything first proves the backup is intact before touching the server.
+    const { counts } = openSnapshotWithKey(snapshot, accountKey);
+
+    const res = (await http.publicRequest(serverUrl, 'POST', '/auth/signup', {
+      email,
+      authKey,
+      kdfParams: snapshot.kdfParams,
+      salt: snapshot.salt,
+      wrappedAccountKey: snapshot.wrappedAccountKey,
+      wrappedRecoveryKey: snapshot.wrappedRecoveryKey,
+      device: deps.device(),
+    })) as unknown as Pick<
+      LoginResponse,
+      'userId' | 'deviceId' | 'accessToken' | 'refreshToken' | 'expiresIn'
+    >;
+
+    await store.clearAll();
+    await store.setMeta('account', {
+      email: email.toLowerCase(),
+      serverUrl,
+      userId: res.userId,
+      deviceId: res.deviceId,
+      kdfParams: snapshot.kdfParams,
+      salt: snapshot.salt,
+      wrappedAccountKey: snapshot.wrappedAccountKey,
+      wrappedRecoveryKey: snapshot.wrappedRecoveryKey,
+      recoveryConfirmed: true, // the backup came from an account that already has its kit
+    } satisfies AccountMeta);
+    await http.saveTokens(res);
+    await session.setAccountKey(accountKey);
+
+    await store.transaction(async () => {
+      for (const v of snapshot.vaults) {
+        await store.putVault({
+          id: v.id,
+          wrappedVaultKey: v.wrappedVaultKey,
+          encMeta: v.encMeta,
+          rev: 0,
+          deletedAt: v.deletedAt,
+          dirty: 1,
+        });
+        await store.addOutbox({ kind: 'vault', id: v.id, baseRev: 0 });
+      }
+      for (const i of snapshot.items) {
+        await store.putItem({
+          id: i.id,
+          vaultId: i.vaultId,
+          type: i.type,
+          wrappedItemKey: i.wrappedItemKey,
+          ciphertext: i.ciphertext,
+          version: i.version,
+          rev: 0,
+          updatedAt: i.updatedAt,
+          deletedAt: i.deletedAt,
+          dirty: 1,
+        });
+        await store.addOutbox({ kind: 'item', id: i.id, baseRev: 0 });
+      }
+    });
+    deps.requestSync();
+    return { counts, checksum: snapshotChecksum(snapshot) };
   }
 
   async function loginRequest(
@@ -226,6 +309,7 @@ export function createAccountService(deps: AccountDeps) {
   return {
     hasAccount,
     createNewAccount,
+    restoreFromSnapshot,
     signIn,
     reauthenticate,
     unlockWithPassword,
