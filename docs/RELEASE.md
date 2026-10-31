@@ -8,6 +8,13 @@ typecheck, tests and the dependency audit, stamps the version into every package
 git tag v1.0.0 && git push origin v1.0.0
 ```
 
+Only what changed since the previous tag is rebuilt. The workflow diffs against the last `v*.*.*` tag:
+changes under `apps/mobile` rebuild the APK, changes under `apps/extension` rebuild the extension
+packages, and shared code (`packages/`, lockfile, `scripts/`, the release workflow) rebuilds both.
+Whatever was not rebuilt is copied unchanged from the previous release, so each release still has every
+file; that APK keeps its old version in its name, and the app's update check uses that version, so an
+extension-only release does not offer a phantom Android update.
+
 ## One-time setup (repository secrets)
 
 Add each one in GitHub: **Settings -> Secrets and variables -> Actions -> New repository secret**, or

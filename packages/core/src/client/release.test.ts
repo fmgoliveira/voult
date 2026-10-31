@@ -37,6 +37,15 @@ describe('update check', () => {
       )?.apkUrl,
     ).toBeNull();
     expect(parseLatestRelease({ tag_name: 'weekly' })).toBeNull();
+    // An extension-only release carries the previous APK: its version is the APK's, not the tag's.
+    expect(
+      parseLatestRelease(
+        release({
+          tag_name: 'v1.3.0',
+          assets: [{ name: 'voult-1.2.0.apk', browser_download_url: 'https://github.com/x/a.apk' }],
+        }),
+      )?.version,
+    ).toBe('1.2.0');
   });
 
   it('reports an update only when newer, and tolerates "no releases yet"', async () => {
