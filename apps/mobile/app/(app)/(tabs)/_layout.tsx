@@ -13,21 +13,19 @@ const TABS: Record<string, { label: string; icon: keyof typeof Ionicons.glyphMap
   settings: { label: 'Settings', icon: 'settings' },
 };
 
-interface RouteNav {
-  emit: (e: { type: 'tabPress'; target: string; canPreventDefault: true }) => {
-    defaultPrevented: boolean;
-  };
-  navigate: (name: string) => void;
-}
-
 interface BarProps {
   state: { index: number; routes: { key: string; name: string }[] };
-  /** Each route's own navigation object (the bar-level `navigation` prop is not passed by every version). */
-  descriptors: Record<string, { navigation: RouteNav }>;
+  emitter: {
+    emit: (e: { type: 'tabPress'; target: string; canPreventDefault: true }) => {
+      defaultPrevented: boolean;
+    };
+  };
+  /** Takes a route KEY, not a name. */
+  navigateToTab: (routeKey: string) => void;
 }
 
 /** Floating glass pill instead of the default full-width bar. */
-function FloatingTabBar({ state, descriptors }: BarProps) {
+function FloatingTabBar({ state, emitter, navigateToTab }: BarProps) {
   const { c, brand } = useTheme();
   const insets = useSafeAreaInsets();
   return (
@@ -41,14 +39,12 @@ function FloatingTabBar({ state, descriptors }: BarProps) {
           if (!meta) return null;
           const active = state.index === i;
           const onPress = () => {
-            const navigation = descriptors[route.key]?.navigation;
-            if (!navigation) return;
-            const e = navigation.emit({
+            const e = emitter.emit({
               type: 'tabPress',
               target: route.key,
               canPreventDefault: true,
             });
-            if (!active && !e.defaultPrevented) navigation.navigate(route.name);
+            if (!active && !e.defaultPrevented) navigateToTab(route.key);
           };
           const inner = (
             <>
