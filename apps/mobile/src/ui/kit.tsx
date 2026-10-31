@@ -412,13 +412,6 @@ export const Field = forwardRef<
         style={[
           styles.inputWrap,
           { borderColor: focused ? c.primary : c.border, backgroundColor: c.surface },
-          focused && {
-            shadowColor: c.primary,
-            shadowOpacity: 0.35,
-            shadowRadius: 8,
-            shadowOffset: { width: 0, height: 0 },
-            elevation: 2,
-          },
         ]}
       >
         {icon ? (
@@ -430,6 +423,8 @@ export const Field = forwardRef<
           placeholderTextColor={c.muted}
           autoCapitalize="none"
           autoCorrect={false}
+          // Other apps' autofill services must not fight for focus (or be offered the master password).
+          importantForAutofill="no"
           {...p}
           onFocus={(e) => {
             setFocused(true);

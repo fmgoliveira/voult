@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { KeyboardAvoidingView, ScrollView } from 'react-native';
 import { useApp } from '../src/lib/app-store';
 import { getRuntime } from '../src/lib/runtime';
 import { DEFAULT_SERVER_URL } from '../src/lib/settings';
@@ -33,10 +33,7 @@ export default function Welcome() {
 
   return (
     <Screen>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={{ flex: 1 }}
-      >
+      <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
         <ScrollView
           contentContainerStyle={{ padding: 24, gap: 16 }}
           keyboardShouldPersistTaps="handled"

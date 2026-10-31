@@ -9,7 +9,7 @@ import {
 } from '@voult/core';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, Switch, Text, View } from 'react-native';
+import { KeyboardAvoidingView, ScrollView, Switch, Text, View } from 'react-native';
 import { useApp } from '../../../src/lib/app-store';
 import { getRuntime } from '../../../src/lib/runtime';
 import { useAction } from '../../../src/ui/hooks';
@@ -98,10 +98,7 @@ export default function EditItem() {
         </View>
         <Button testID="save" label="Save" busy={busy} onPress={save} />
       </View>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={{ flex: 1 }}
-      >
+      <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
         <ScrollView
           contentContainerStyle={{ padding: 16, gap: 14 }}
           keyboardShouldPersistTaps="handled"
