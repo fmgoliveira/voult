@@ -1,5 +1,6 @@
 import {
   hostOf,
+  matchLogin,
   queryItems,
   type Item,
   type ItemType,
@@ -19,6 +20,7 @@ import {
   Star,
   Trash2,
   User,
+  X,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { TotpCode } from '../components/Totp';
@@ -36,6 +38,7 @@ import {
 } from '../components/ui';
 import { copySecret } from '../lib/clipboard';
 import { useNav } from '../lib/nav';
+import { useActiveSite, useSiteFilter } from '../lib/site';
 import {
   purgeItem,
   restoreItem,
@@ -132,8 +135,19 @@ function Row({ v }: { v: ItemView }) {
 function List({ items, vaults }: { items: ItemView[]; vaults: VaultView[] }) {
   const { query, patchQuery, open } = useNav();
   const [menu, setMenu] = useState(false);
-  const rows = useMemo(() => queryItems(items, query), [items, query]);
-  const filtering = query.text || query.type !== 'all' || query.vaultId !== 'all';
+  const site = useActiveSite();
+  const { dismissed, dismiss } = useSiteFilter();
+  const siteItems = useMemo(
+    () => (site ? items.filter((v) => v.item.type === 'login' && matchLogin(v.item, site)) : []),
+    [items, site],
+  );
+  // On a site we have logins for, start with just those; the chip removes the filter.
+  const siteOn = siteItems.length > 0 && !dismissed && !query.trash;
+  const rows = useMemo(
+    () => queryItems(siteOn ? siteItems : items, query),
+    [items, siteItems, siteOn, query],
+  );
+  const filtering = query.text || query.type !== 'all' || query.vaultId !== 'all' || siteOn;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -182,6 +196,22 @@ function List({ items, vaults }: { items: ItemView[]; vaults: VaultView[] }) {
             )}
           </div>
         </div>
+
+        {siteOn && site && (
+          <div className="flex items-center gap-2 rounded-xl bg-primary/10 py-1 pr-1 pl-3 text-xs font-semibold text-primary">
+            <span className="min-w-0 flex-1 truncate" data-testid="site-filter">
+              Logins for {hostOf(site)}
+            </span>
+            <button
+              type="button"
+              aria-label="Show all items"
+              onClick={dismiss}
+              className="grid size-6 shrink-0 place-items-center rounded-lg hover:bg-primary/15"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        )}
 
         <div
           className="flex items-center gap-1.5 overflow-x-auto pb-0.5"

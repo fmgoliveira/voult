@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Extension
+
+- Toolbar badge with the number of logins that match the active tab (hidden while locked or when there are none)
+- Opening the popup on a site with matching logins starts filtered to them; the chip at the top removes the filter
+
 ### Phase 9 — Hardening & release
 
 - Password health (Settings, both apps): weak, reused and old passwords analysed on-device, plus an opt-in breach check against Have I Been Pwned using k-anonymity (only a 5-character hash prefix is sent)

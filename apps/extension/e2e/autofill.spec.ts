@@ -314,3 +314,16 @@ test('passkeys: register and sign in, verified by a real WebAuthn relying party'
   await popup.getByRole('button', { name: 'Remove', exact: true }).click();
   await expect(popup.getByRole('region', { name: 'Passkeys' })).toHaveCount(0);
 });
+
+test('toolbar badge shows how many logins match the active tab', async () => {
+  const page = await open('/login');
+  await page.bringToFront();
+  const badge = () =>
+    sw.evaluate(async (pattern) => {
+      const [tab] = await chrome.tabs.query({ url: pattern });
+      return chrome.action.getBadgeText({ tabId: tab.id });
+    }, `${SITE}/*`);
+  // Earlier tests saved extra logins for this site, so only check that the count shows up.
+  await expect.poll(badge, { timeout: 10_000 }).toMatch(/^[1-9]\d*$/);
+  await page.close();
+});
