@@ -1,6 +1,15 @@
 import { Download, KeyRound, Lock, Mail, Server, ShieldAlert } from 'lucide-react';
 import { useState } from 'react';
-import { Button, Checkbox, ErrorText, Field, Input, Logo } from '../components/ui';
+import {
+  Button,
+  Checkbox,
+  ErrorText,
+  Field,
+  Input,
+  Logo,
+  OtpInput,
+  PIN_LENGTH,
+} from '../components/ui';
 import { ApiError } from '../lib/api';
 import { useAsyncAction } from '../lib/hooks';
 import { buildRecoveryKitPdf, downloadBytes } from '../lib/recovery-kit';
@@ -243,12 +252,14 @@ export function Unlock({
 
   const submitPassword = (e: React.FormEvent) => {
     e.preventDefault();
-    void run(() => unlockWithPassword(password, newPin || undefined), friendly);
+    void run(
+      () => unlockWithPassword(password, newPin.length === PIN_LENGTH ? newPin : undefined),
+      friendly,
+    );
   };
-  const submitPin = (e: React.FormEvent) => {
-    e.preventDefault();
+  const submitPin = (code: string) => {
     void run(async () => {
-      const r = await unlockWithPin(pinCode);
+      const r = await unlockWithPin(code);
       if (!r.ok) {
         setPinCode('');
         throw new Error(
@@ -264,25 +275,19 @@ export function Unlock({
   return (
     <Shell title="Vault locked" subtitle={email}>
       {usePin && pin ? (
-        <form onSubmit={submitPin} className="space-y-3">
-          <Field label="PIN">
-            {(id) => (
-              <Input
-                id={id}
-                leading={<KeyRound size={15} />}
-                type="password"
-                inputMode="numeric"
-                autoFocus
-                autoComplete="off"
-                value={pinCode}
-                onChange={(e) => setPinCode(e.target.value)}
-              />
-            )}
-          </Field>
+        <div className="space-y-4">
+          <p className="flex items-center justify-center gap-1.5 text-xs text-muted">
+            <KeyRound size={13} /> Enter your 6-digit PIN
+          </p>
+          <OtpInput
+            label="PIN"
+            value={pinCode}
+            onChange={setPinCode}
+            onComplete={submitPin}
+            disabled={busy}
+            autoFocus
+          />
           <ErrorText>{error}</ErrorText>
-          <Button type="submit" className="w-full" disabled={busy || !pinCode}>
-            Unlock
-          </Button>
           <button
             type="button"
             className="w-full text-center text-xs font-semibold text-primary hover:underline"
@@ -293,7 +298,7 @@ export function Unlock({
           >
             Use master password
           </button>
-        </form>
+        </div>
       ) : (
         <form onSubmit={submitPassword} className="space-y-3">
           <Field label="Master password">
@@ -310,21 +315,15 @@ export function Unlock({
             )}
           </Field>
           {pinEnabled && (
-            <Field
-              label="Quick-unlock PIN (optional)"
-              hint="Kept in memory only; cleared when the browser closes."
-            >
-              {(id) => (
-                <Input
-                  id={id}
-                  type="password"
-                  inputMode="numeric"
-                  autoComplete="off"
-                  value={newPin}
-                  onChange={(e) => setNewPin(e.target.value)}
-                />
-              )}
-            </Field>
+            <div className="space-y-2">
+              <p className="text-xs font-semibold tracking-wide text-muted">
+                Quick-unlock PIN (optional, 6 digits)
+              </p>
+              <OtpInput label="New PIN" value={newPin} onChange={setNewPin} />
+              <p className="text-center text-xs text-muted">
+                Kept in memory only; cleared when the browser closes.
+              </p>
+            </div>
           )}
           <ErrorText>{error}</ErrorText>
           <Button type="submit" className="w-full" disabled={busy || !password}>

@@ -10,6 +10,7 @@ import {
   Pressable,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -374,5 +375,97 @@ export function ConfirmSheet({
         </View>
       </View>
     </Sheet>
+  );
+}
+
+export const PIN_LENGTH = 6;
+
+/** Six-slot code input. Typing the last digit calls `onComplete`; there is no submit button. */
+export function OtpInput({
+  value,
+  onChange,
+  onComplete,
+  autoFocus,
+  disabled,
+  mask = true,
+  accessibilityLabel,
+  testID,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  onComplete?: (v: string) => void;
+  autoFocus?: boolean;
+  disabled?: boolean;
+  /** Show dots instead of the digits. */
+  mask?: boolean;
+  accessibilityLabel: string;
+  testID?: string;
+}) {
+  const { c } = useTheme();
+  const [focused, setFocused] = useState(false);
+  return (
+    <View style={{ opacity: disabled ? 0.5 : 1 }}>
+      <View
+        pointerEvents="none"
+        style={{ flexDirection: 'row', justifyContent: 'center', gap: 10 }}
+      >
+        {Array.from({ length: PIN_LENGTH }, (_, i) => {
+          const active = focused && i === Math.min(value.length, PIN_LENGTH - 1);
+          const ch = value[i];
+          return (
+            <View
+              key={i}
+              style={{
+                width: 44,
+                height: 56,
+                borderRadius: 14,
+                borderWidth: active ? 2 : 1,
+                borderColor: active ? c.primary : c.borderStrong,
+                backgroundColor: c.surface,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              {ch ? (
+                mask ? (
+                  <View
+                    style={{
+                      width: 11,
+                      height: 11,
+                      borderRadius: 6,
+                      backgroundColor: c.foreground,
+                    }}
+                  />
+                ) : (
+                  <Text style={{ color: c.foreground, fontSize: 22, fontWeight: '700' }}>{ch}</Text>
+                )
+              ) : null}
+            </View>
+          );
+        })}
+      </View>
+      <TextInput
+        testID={testID}
+        accessibilityLabel={accessibilityLabel}
+        value={value}
+        editable={!disabled}
+        autoFocus={autoFocus}
+        keyboardType="number-pad"
+        maxLength={PIN_LENGTH}
+        caretHidden
+        contextMenuHidden
+        importantForAutofill="no"
+        autoComplete="off"
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        onChangeText={(t) => {
+          const v = t.replace(/\D/g, '').slice(0, PIN_LENGTH);
+          onChange(v);
+          if (v.length === PIN_LENGTH) onComplete?.(v);
+        }}
+        // Invisible, but covers the slots so a tap anywhere on them opens the keyboard.
+        style={[StyleSheet.absoluteFill, { opacity: 0.02, color: 'transparent' }]}
+      />
+    </View>
   );
 }

@@ -592,3 +592,71 @@ export function Toaster() {
     </div>
   );
 }
+
+export const PIN_LENGTH = 6;
+
+/** Six-slot code input. Typing the last digit calls `onComplete`; there is no submit button. */
+export function OtpInput({
+  value,
+  onChange,
+  onComplete,
+  autoFocus,
+  disabled,
+  mask = true,
+  label,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  onComplete?: (v: string) => void;
+  autoFocus?: boolean;
+  disabled?: boolean;
+  /** Show dots instead of the digits. */
+  mask?: boolean;
+  label: string;
+}) {
+  const [focused, setFocused] = useState(false);
+  const input = useRef<HTMLInputElement>(null);
+  return (
+    <div
+      className={cn('relative mx-auto flex w-fit gap-2', disabled && 'opacity-50')}
+      onClick={() => input.current?.focus()}
+    >
+      {Array.from({ length: PIN_LENGTH }, (_, i) => {
+        const active = focused && i === Math.min(value.length, PIN_LENGTH - 1);
+        const ch = value[i];
+        return (
+          <div
+            key={i}
+            aria-hidden
+            className={cn(
+              'grid h-12 w-10 place-items-center rounded-xl border bg-surface text-lg font-semibold transition-colors',
+              active ? 'border-primary ring-2 ring-primary/30' : 'border-border-strong',
+            )}
+          >
+            {ch ? mask ? <span className="size-2.5 rounded-full bg-fg" /> : ch : null}
+          </div>
+        );
+      })}
+      <input
+        ref={input}
+        aria-label={label}
+        value={value}
+        disabled={disabled}
+        autoFocus={autoFocus}
+        inputMode="numeric"
+        pattern="[0-9]*"
+        maxLength={PIN_LENGTH}
+        autoComplete="off"
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        onChange={(e) => {
+          const v = e.target.value.replace(/\D/g, '').slice(0, PIN_LENGTH);
+          onChange(v);
+          if (v.length === PIN_LENGTH) onComplete?.(v);
+        }}
+        // Invisible, but covers the slots so a click anywhere on them focuses it.
+        className="absolute inset-0 h-full w-full cursor-text opacity-0 focus-visible:outline-0"
+      />
+    </div>
+  );
+}

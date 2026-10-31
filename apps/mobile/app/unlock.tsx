@@ -1,12 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
-import { ScrollView } from 'react-native';
+import { ScrollView, Text } from 'react-native';
 import { BiometricCanceledError } from '../modules/voult-native';
 import { friendlyError, useApp } from '../src/lib/app-store';
 import { getRuntime } from '../src/lib/runtime';
+import { OtpInput } from '../src/ui/controls';
 import { useAction } from '../src/ui/hooks';
 import { Button, ErrorText, Field, Screen, AuthHero, Glass } from '../src/ui/kit';
+import { useTheme } from '../src/ui/theme';
 
 export default function Unlock() {
+  const { c } = useTheme();
   const { email, quick, refresh } = useApp();
   const [mode, setMode] = useState<'pin' | 'password'>(quick.pin ? 'pin' : 'password');
   const [password, setPassword] = useState('');
@@ -48,11 +51,11 @@ export default function Unlock() {
       await refresh();
     });
 
-  const submitPin = () =>
+  const submitPin = (code: string) =>
     void run(
       async () => {
         const rt = await getRuntime();
-        const r = await rt.quick.unlockWithPin(pin);
+        const r = await rt.quick.unlockWithPin(code);
         if (!r.ok) {
           setPin('');
           if (r.attemptsLeft === 0) setMode('password');
@@ -79,24 +82,17 @@ export default function Unlock() {
         <Glass strong radius={26} style={{ padding: 20, gap: 16 }}>
           {mode === 'pin' && quick.pin ? (
             <>
-              <Field
-                label="PIN"
+              <Text style={{ color: c.muted, textAlign: 'center' }}>Enter your 6-digit PIN</Text>
+              <OtpInput
                 testID="pin"
+                accessibilityLabel="PIN"
                 value={pin}
-                onChangeText={setPin}
-                secret
-                keyboardType="number-pad"
+                onChange={setPin}
+                onComplete={submitPin}
+                disabled={busy}
                 autoFocus
-                onSubmitEditing={submitPin}
               />
               <ErrorText>{error}</ErrorText>
-              <Button
-                testID="unlock-pin"
-                label="Unlock"
-                busy={busy}
-                disabled={!pin}
-                onPress={submitPin}
-              />
             </>
           ) : (
             <>

@@ -7,7 +7,16 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { Button, ErrorText, Field, Input, Select, Switch } from '../components/ui';
+import {
+  Button,
+  ErrorText,
+  Field,
+  Input,
+  OtpInput,
+  Select,
+  Switch,
+  useToast,
+} from '../components/ui';
 import { requestOk } from '../lib/api';
 import { db } from '../lib/db';
 import { useAsyncAction, type Status } from '../lib/hooks';
@@ -220,25 +229,25 @@ export function SettingsTab({ settings, status }: { settings: Settings; status: 
           />
         </Row>
         {settings.pinEnabled && (
-          <form
-            className="flex gap-2"
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (pinDraft.length >= 4) void setPin(pinDraft).then(() => setPinDraft(''));
-            }}
-          >
-            <Input
-              aria-label="New PIN"
-              type="password"
-              inputMode="numeric"
-              placeholder={status.pin ? 'PIN set — enter to change' : 'Choose a PIN (4+ digits)'}
+          <div className="space-y-2">
+            <p className="text-xs font-semibold tracking-wide text-muted">
+              {status.pin ? 'Change your 6-digit PIN' : 'Choose a 6-digit PIN'}
+            </p>
+            <OtpInput
+              label="New PIN"
               value={pinDraft}
-              onChange={(e) => setPinDraft(e.target.value)}
+              onChange={setPinDraft}
+              onComplete={(code) =>
+                void setPin(code).then(() => {
+                  setPinDraft('');
+                  useToast.getState().show('PIN saved');
+                })
+              }
             />
-            <Button type="submit" variant="secondary" disabled={pinDraft.length < 4}>
-              Set
-            </Button>
-          </form>
+            <p className="text-center text-xs text-muted">
+              Saved as soon as you enter the sixth digit.
+            </p>
+          </div>
         )}
         <p className="text-xs text-muted">
           The PIN lives in memory only and is wiped after 5 wrong attempts or when the browser

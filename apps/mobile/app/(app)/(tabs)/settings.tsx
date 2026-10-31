@@ -5,7 +5,7 @@ import { friendlyError, useApp } from '../../../src/lib/app-store';
 import { getRuntime } from '../../../src/lib/runtime';
 import type { Settings } from '../../../src/lib/settings';
 import { useAction } from '../../../src/ui/hooks';
-import { ConfirmSheet, Toggle } from '../../../src/ui/controls';
+import { ConfirmSheet, OtpInput, Toggle } from '../../../src/ui/controls';
 import { Button, Chip, ErrorText, Field, Screen, Section } from '../../../src/ui/kit';
 import { useTheme } from '../../../src/ui/theme';
 
@@ -221,29 +221,28 @@ export default function SettingsTab() {
               disabled={!quick.pin}
             />
           </Row>
-          <Field
-            label={quick.pin ? 'Change PIN' : 'Set a PIN (4+ digits)'}
+          <Text style={{ color: c.muted, fontSize: 13 }}>
+            {quick.pin ? 'Change your 6-digit PIN' : 'Set a 6-digit PIN'}
+          </Text>
+          <OtpInput
+            accessibilityLabel="New PIN"
             value={pinDraft}
-            onChangeText={setPinDraft}
-            secret
-            keyboardType="number-pad"
-            hint="Five wrong attempts delete the PIN; you then need your master password."
-          />
-          <Button
-            variant="secondary"
-            label={quick.pin ? 'Update PIN' : 'Enable PIN'}
-            disabled={pinDraft.length < 4}
-            busy={pin.busy}
-            onPress={() =>
+            onChange={setPinDraft}
+            disabled={pin.busy}
+            onComplete={(code) =>
               void pin.run(async () => {
                 const rt = await getRuntime();
                 const key = await rt.getAccountKey();
-                if (key) await rt.quick.setPin(pinDraft, key);
+                if (key) await rt.quick.setPin(code, key);
                 setPinDraft('');
                 await refresh();
               })
             }
           />
+          <Text style={{ color: c.muted, fontSize: 12 }}>
+            It saves as soon as you enter the sixth digit. Five wrong attempts delete the PIN; you
+            then need your master password.
+          </Text>
           <ErrorText>{pin.error}</ErrorText>
 
           <Text style={{ color: c.muted, fontSize: 13 }}>Auto-lock after leaving the app</Text>
