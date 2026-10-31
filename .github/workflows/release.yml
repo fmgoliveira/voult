@@ -71,7 +71,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @voult/core --filter @voult/ui-tokens build
       - run: pnpm --filter @voult/extension zip
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: extension
           # .output is a hidden directory: upload-artifact skips those unless told otherwise.
@@ -103,7 +103,7 @@ jobs:
           cp "$XPI" signed/voult-firefox.xpi
           SHA=$(sha256sum signed/voult-firefox.xpi | cut -d' ' -f1)
           node scripts/release-metadata.mjs firefox-updates "${GITHUB_REF_NAME#v}" voult-firefox.xpi "$SHA" > signed/updates.json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: env.AMO_JWT_ISSUER != ''
         with:
           name: firefox-signed
@@ -148,7 +148,7 @@ jobs:
             --ks-pass env:KEYSTORE_PASSWORD --out "voult-${GITHUB_REF_NAME#v}.apk" aligned.apk
           "$BT/apksigner" verify --print-certs "voult-${GITHUB_REF_NAME#v}.apk"
           rm "$RUNNER_TEMP/release.keystore"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: android
           if-no-files-found: error
