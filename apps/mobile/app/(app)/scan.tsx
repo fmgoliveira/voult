@@ -6,6 +6,7 @@ import { Text, View } from 'react-native';
 import { useApp } from '../../src/lib/app-store';
 import { getRuntime } from '../../src/lib/runtime';
 import { useAction } from '../../src/ui/hooks';
+import { attachTotp, LinkLogin } from '../../src/ui/link-login';
 import { Body, Button, ErrorText, Screen } from '../../src/ui/kit';
 import { useTheme } from '../../src/ui/theme';
 
@@ -16,6 +17,8 @@ export default function Scan() {
   const vaultId = useApp((s) => s.vaults[0]?.id);
   const [found, setFound] = useState<Totp[] | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
+  const [linkId, setLinkId] = useState<string | null>(null);
+  const items = useApp((s) => s.items);
   const locked = useRef(false);
   const { busy, error, run } = useAction();
 
@@ -52,15 +55,22 @@ export default function Scan() {
               {[t.issuer, t.account].filter(Boolean).join(' · ') || 'Unnamed'}
             </Text>
           ))}
+          {found.length === 1 && <LinkLogin value={linkId} onChange={setLinkId} />}
           <ErrorText>{error}</ErrorText>
           <Button
             testID="add-scanned"
-            label={found.length > 1 ? 'Add all' : 'Add'}
+            label={found.length > 1 ? 'Add all' : linkId ? 'Add to login' : 'Add'}
             busy={busy}
             onPress={() =>
               void run(async () => {
                 if (!vaultId) throw new Error('No vault yet. Wait for the first sync to finish.');
                 const rt = await getRuntime();
+                const target = found.length === 1 ? items.find((i) => i.id === linkId) : undefined;
+                if (target && found[0]) {
+                  await attachTotp(target, found[0]);
+                  router.back();
+                  return;
+                }
                 for (const t of found) {
                   const now = Date.now();
                   await rt.vault.saveItem(vaultId, {
@@ -83,6 +93,7 @@ export default function Scan() {
             label="Scan again"
             onPress={() => {
               locked.current = false;
+              setLinkId(null);
               setFound(null);
             }}
           />

@@ -20,6 +20,7 @@ import { Toggle } from '../../../src/ui/controls';
 import { GeneratorSheet } from '../../../src/ui/generator';
 import { Button, ErrorText, Field, IconButton, Screen, TypeTile } from '../../../src/ui/kit';
 import { TYPE_LABEL } from '../../../src/ui/items';
+import { attachTotp, LinkLogin } from '../../../src/ui/link-login';
 import { useTheme } from '../../../src/ui/theme';
 
 type Draft = Item & Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -123,6 +124,7 @@ export default function EditItem() {
     return (it?.type === 'login' || it?.type === 'totp' ? it.totp?.secret : '') ?? '';
   });
   const [generating, setGenerating] = useState(false);
+  const [linkId, setLinkId] = useState<string | null>(null);
   const vaultId = existing?.vaultId ?? vaults[0]?.id ?? '';
   const { busy, error, run } = useAction();
 
@@ -147,11 +149,26 @@ export default function EditItem() {
           if (!t) throw new Error('Enter the secret key or an otpauth:// link.');
           next = { ...next, totp: t };
         }
+        // A linked code lives on the login, so it needs no title of its own.
+        const linkTarget =
+          !existing && next.type === 'totp' ? items.find((i) => i.id === linkId) : undefined;
+        if (linkTarget && !next.title.trim()) next = { ...next, title: linkTarget.item.title };
         if (!next.title.trim()) throw new Error('Give it a title.');
         const parsed = itemSchema.safeParse(next);
         if (!parsed.success) throw new Error('Some fields are invalid.');
         if (!vaultId) throw new Error('No vault yet. Wait for the first sync to finish.');
         const rt = await getRuntime();
+        const target =
+          !existing && next.type === 'totp' && linkId
+            ? items.find((i) => i.id === linkId)
+            : undefined;
+        if (target && next.type === 'totp') {
+          // Linked: the code lives on the login rather than as its own item.
+          await attachTotp(target, next.totp);
+          router.back();
+          router.push({ pathname: '/item/[id]', params: { id: target.id } });
+          return;
+        }
         let id: string;
         if (existing && parsed.data.type === 'login') {
           await rt.vault.saveLoginEdit(existing, parsed.data);
@@ -277,6 +294,7 @@ export default function EditItem() {
                 value={draft.totp.account}
                 onChangeText={(v) => patch({ totp: { ...draft.totp, account: v } })}
               />
+              {!existing && <LinkLogin value={linkId} onChange={setLinkId} />}
             </>
           )}
 

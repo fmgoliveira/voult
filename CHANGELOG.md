@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Android
+
+- Adding a 2FA code (QR scan or manual entry) can link it to an existing login, so the code lives on that login instead of as a separate item
+
 ### Extension
 
 - Toolbar badge with the number of logins that match the active tab (hidden while locked or when there are none)
