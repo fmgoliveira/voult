@@ -9,9 +9,23 @@
     "platforms": ["android"],
     "android": {
       "package": "com.franciscoliveira.voult",
-      "minSdkVersion": 26
+      "minSdkVersion": 26,
+      "permissions": ["android.permission.CAMERA", "android.permission.USE_BIOMETRIC"],
+      "allowBackup": false
     },
-    "plugins": ["expo-router", "expo-dev-client"],
+    "plugins": [
+      "expo-router",
+      "expo-dev-client",
+      "expo-secure-store",
+      "expo-sqlite",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Voult uses the camera only to scan 2FA QR codes.",
+          "recordAudioAndroid": false
+        }
+      ]
+    ],
     "experiments": { "typedRoutes": true }
   }
 }

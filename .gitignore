@@ -10,8 +10,14 @@ coverage
 .env.*
 !.env.example
 /data
-android
-ios
+/apps/mobile/android
+/apps/mobile/ios
 *.tsbuildinfo
 test-results
 playwright-report
+shots
+
+# Gradle / CMake outputs (also created inside the local native module)
+.gradle
+.cxx
+/apps/mobile/modules/*/android/build

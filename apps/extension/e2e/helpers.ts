@@ -89,7 +89,7 @@ export async function addLogin(
   await popup.getByRole('button', { name: 'Add item' }).click();
   await popup.getByRole('menuitem', { name: 'Login' }).click();
   await popup.getByLabel('Title').fill(f.title);
-  if (f.username) await popup.getByLabel('Username').fill(f.username);
+  if (f.username) await popup.getByLabel('Email or username').fill(f.username);
   if (f.password) await popup.getByLabel('Password', { exact: true }).fill(f.password);
   if (f.url) {
     await popup.getByRole('button', { name: 'Add website' }).click();

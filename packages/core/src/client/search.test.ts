@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { itemSchema } from '@voult/core';
-import { hostOf, matchesText, queryItems, type ListQuery } from '../lib/search';
-import { shouldAutoLock } from '../lib/session';
-import { parseTotpInput } from '../lib/totp-input';
-import type { ItemView } from '../lib/vault';
+import { itemSchema } from '../vault/schemas';
+import { hostOf, matchesText, queryItems, type ListQuery } from './search';
+import { blankItem } from './blank-item';
+import { normalizeServerUrl } from './server-url';
+import { parseTotpInput } from './totp-input';
+import type { ItemView } from './types';
 
 const view = (
   id: string,
@@ -63,15 +64,6 @@ describe('search', () => {
   });
 });
 
-describe('auto-lock', () => {
-  it('locks only after the idle window; 0 disables', () => {
-    const now = 10 * 60_000;
-    expect(shouldAutoLock(now, now - 4 * 60_000, 5)).toBe(false);
-    expect(shouldAutoLock(now, now - 5 * 60_000, 5)).toBe(true);
-    expect(shouldAutoLock(now, 0, 0)).toBe(false);
-  });
-});
-
 describe('totp input', () => {
   it('accepts bare secrets and otpauth links', () => {
     expect(parseTotpInput('', undefined)).toBeUndefined();
@@ -80,5 +72,27 @@ describe('totp input', () => {
       issuer: 'x',
       account: 'y',
     });
+  });
+});
+
+describe('normalizeServerUrl', () => {
+  it('requires https except on loopback and strips paths', () => {
+    expect(normalizeServerUrl(' https://vault.example.com/x/y ')).toBe('https://vault.example.com');
+    expect(normalizeServerUrl('http://localhost:8787')).toBe('http://localhost:8787');
+    expect(normalizeServerUrl('http://127.0.0.1:1')).toBe('http://127.0.0.1:1');
+    expect(() => normalizeServerUrl('http://vault.example.com')).toThrow('https');
+    expect(() => normalizeServerUrl('nonsense')).toThrow();
+  });
+});
+
+describe('blankItem', () => {
+  it('produces a valid-shaped empty item for every type', () => {
+    for (const type of ['login', 'note', 'card', 'identity', 'totp'] as const) {
+      const i = blankItem(type);
+      expect(i.type).toBe(type);
+      expect(i.title).toBe('');
+    }
+    const t = blankItem('totp');
+    expect(t.type === 'totp' && t.totp.algorithm).toBe('SHA1');
   });
 });

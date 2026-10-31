@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { base32Decode, totp } from '@voult/core';
 import type { Server } from 'node:http';
-import { addLogin, createAccount, Env } from './helpers';
+import { addLogin, createAccount, Env, PASSWORD } from './helpers';
 import { startFixtureServer } from './fixture-server';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -52,8 +52,8 @@ async function open(path: string): Promise<Page> {
 
 test('inline icon fills the matching login', async () => {
   const page = await open('/login');
+  // Focusing an empty login field opens the list by itself.
   await page.locator('input[name=email]').click();
-  await icon(page).click();
   await expect(menu(page)).toContainText('Fixture');
   await menu(page)
     .getByRole('menuitem', { name: /Fixture/ })
@@ -63,10 +63,78 @@ test('inline icon fills the matching login', async () => {
   await page.close();
 });
 
+test('dropdown opens on focus, arrow keys + Enter choose, typing just types', async () => {
+  const page = await open('/login');
+  const email = page.locator('input[name=email]');
+
+  // Keyboard: the input keeps focus the whole time.
+  await email.click();
+  await expect(menu(page)).toContainText('Fixture');
+  await page.keyboard.press('ArrowDown');
+  await expect(menu(page).getByRole('menuitem').first()).toHaveClass(/active/);
+  await expect(email).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(email).toHaveValue('alice@fixture.test');
+  await expect(page.locator('input[name=pw]')).toHaveValue('Sup3r-secret-pw');
+  await expect(menu(page)).toHaveCount(0);
+
+  // Typing: the list steps aside and the text goes straight into the field, no extra click.
+  await email.fill('');
+  await page.locator('input[name=pw]').fill('');
+  await page.locator('body').click({ position: { x: 5, y: 5 } });
+  await email.click();
+  await expect(menu(page)).toContainText('Fixture');
+  await page.keyboard.type('bob');
+  await expect(email).toHaveValue('bob');
+  await expect(menu(page)).toHaveCount(0);
+  await page.close();
+});
+
+test('locked vault: the list shows an unlock box; ArrowDown moves into it; then the logins appear', async () => {
+  await sw.evaluate(() => chrome.storage.session.remove('accountKey'));
+  const page = await open('/login');
+  const email = page.locator('input[name=email]');
+  await email.click();
+
+  // The unlock box is an extension page in an iframe (the site cannot see what is typed in it).
+  await expect.poll(() => page.frames().some((f) => /unlock\.html/.test(f.url()))).toBe(true);
+  const unlock = page.frames().find((f) => /unlock\.html/.test(f.url()))!;
+  await expect(unlock.getByText('Voult is locked')).toBeVisible();
+  await expect(email).toBeFocused(); // the page keeps the keyboard until asked
+
+  await page.keyboard.press('ArrowDown'); // focus moves into the box...
+  await page.keyboard.type(PASSWORD); // ...so this lands there, not in the page's field
+  await page.keyboard.press('Enter');
+  await expect(email).toHaveValue('');
+  await expect(menu(page)).toContainText('Fixture');
+  await expect(email).toBeFocused();
+  await page.close();
+});
+
+test('locked vault with a PIN: the unlock box takes the PIN', async () => {
+  // Set a PIN from the popup's Settings (the vault is unlocked again after the previous test).
+  await popup.reload();
+  await popup.getByRole('navigation', { name: 'Main' }).getByText('Settings').click();
+  await popup.getByRole('switch', { name: 'Quick-unlock PIN' }).click();
+  await popup.getByLabel('New PIN').pressSequentially('123456');
+  await expect(popup.getByText('PIN saved')).toBeVisible();
+  await sw.evaluate(() => chrome.storage.session.remove('accountKey'));
+
+  const page = await open('/login');
+  const email = page.locator('input[name=email]');
+  await email.click();
+  await expect.poll(() => page.frames().some((f) => /unlock\.html/.test(f.url()))).toBe(true);
+  const unlock = page.frames().find((f) => /unlock\.html/.test(f.url()))!;
+  await expect(unlock.getByText('Enter your PIN')).toBeVisible();
+
+  await unlock.getByLabel('PIN').pressSequentially('123456');
+  await expect(menu(page)).toContainText('Fixture');
+  await page.close();
+});
+
 test('OTP field on the next page is filled with the current code', async () => {
   const login = await open('/login');
   await login.locator('input[name=email]').click();
-  await icon(login).click();
   await menu(login)
     .getByRole('menuitem', { name: /Fixture/ })
     .click();
@@ -92,7 +160,6 @@ test('works inside an iframe and via the keyboard-shortcut path', async () => {
   const page = await open('/frame');
   const frame = page.frameLocator('iframe');
   await frame.locator('input[name=email]').click();
-  await frame.locator('voult-autofill .icon').click();
   await frame
     .locator('voult-autofill .menu')
     .getByRole('menuitem', { name: /Fixture/ })
@@ -114,7 +181,6 @@ test('works inside an iframe and via the keyboard-shortcut path', async () => {
 test('multi-step login: username page fills the username only', async () => {
   const page = await open('/multistep');
   await page.locator('input[name=identifier]').click();
-  await icon(page).click();
   await menu(page)
     .getByRole('menuitem', { name: /Fixture/ })
     .click();
@@ -205,22 +271,32 @@ test('"Never for this site" suppresses further save prompts', async () => {
 test('passkeys: register and sign in, verified by a real WebAuthn relying party', async () => {
   const page = await open('/passkey');
 
-  // Register: our picker window appears; choose to save as a new login.
-  let [picker] = await Promise.all([ctx.waitForEvent('page'), page.click('#register')]);
+  // The prompt is shown over the page (an iframe), not in a separate window.
+  const promptFrame = async () => {
+    await expect.poll(() => page.frames().some((f) => /prompt\.html/.test(f.url()))).toBe(true);
+    return page.frames().find((f) => /prompt\.html/.test(f.url()))!;
+  };
+
+  // Register: choose to save as a new login.
+  await page.click('#register');
+  let picker = await promptFrame();
   await expect(picker.getByText('Create a passkey')).toBeVisible();
   await picker.getByRole('button', { name: 'Create passkey' }).click();
   await expect(page.locator('#out')).toHaveText('registered');
 
   // Sign in twice: the sign counter advances and the signature verifies each time.
   for (const counter of [1, 2]) {
-    [picker] = await Promise.all([ctx.waitForEvent('page'), page.click('#signin')]);
+    await page.click('#signin');
+    picker = await promptFrame();
     await picker.getByTestId('passkey-option').first().click();
     await expect(page.locator('#out')).toHaveText(`signed-in:counter=${counter}`);
   }
 
-  // Closing the picker without choosing is a refusal, not a hang.
-  [picker] = await Promise.all([ctx.waitForEvent('page'), page.click('#signin')]);
-  await picker.close();
+  // Escape without choosing is a refusal, not a hang.
+  await page.click('#signin');
+  picker = await promptFrame();
+  await picker.getByTestId('passkey-option').first().waitFor();
+  await page.keyboard.press('Escape');
   await expect(page.locator('#out')).toHaveText('error:NotAllowedError');
   await page.close();
 
@@ -231,4 +307,9 @@ test('passkeys: register and sign in, verified by a real WebAuthn relying party'
     .filter({ hasText: /alice@fixture(?!\.test)/ })
     .click();
   await expect(popup.getByRole('region', { name: 'Passkeys' })).toContainText('Fixture');
+
+  // ...and can be removed again (with a confirmation step).
+  await popup.getByRole('button', { name: /Remove passkey for/ }).click();
+  await popup.getByRole('button', { name: 'Remove', exact: true }).click();
+  await expect(popup.getByRole('region', { name: 'Passkeys' })).toHaveCount(0);
 });

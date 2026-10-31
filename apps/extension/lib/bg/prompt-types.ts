@@ -27,6 +27,19 @@ export type PromptDecision =
   | { action: 'fallback' }
   | { action: 'cancel' };
 
+/** From the in-page unlock frame (an extension page). */
+export type UnlockMessage =
+  | { type: 'unlock:close' }
+  /** Does a PIN exist? */
+  | { type: 'unlock:status' }
+  | { type: 'unlock:pin'; pin: string }
+  | { type: 'unlock:password'; password: string };
+
+export type UnlockResult =
+  { ok: true } | { ok: false; attemptsLeft: number } | { ok: false; error: string };
+
 export type PromptMessage =
   | { type: 'prompt:get'; id: string }
-  | { type: 'prompt:decide'; id: string; decision: PromptDecision };
+  | { type: 'prompt:decide'; id: string; decision: PromptDecision }
+  /** From the page's backdrop (content script): the user clicked outside the prompt. */
+  | { type: 'prompt:dismiss'; id: string };

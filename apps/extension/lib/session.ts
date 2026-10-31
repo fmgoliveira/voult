@@ -23,7 +23,11 @@ export async function clearAccountKey(): Promise<void> {
 export const isUnlocked = async (): Promise<boolean> => (await getAccountKey()) !== null;
 
 export async function touchActivity(): Promise<void> {
-  await area().set({ lastActivity: Date.now() });
+  try {
+    await area().set({ lastActivity: Date.now() });
+  } catch {
+    /* extension frames inside web pages (Firefox) have no storage.session */
+  }
 }
 
 export async function getLastActivity(): Promise<number> {
@@ -36,7 +40,10 @@ export function shouldAutoLock(now: number, lastActivity: number, minutes: numbe
   return minutes > 0 && now - lastActivity >= minutes * 60_000;
 }
 
-// --- Optional memory-only PIN: Argon2id(PIN) wraps the account key inside storage.session. ---
+// --- Optional quick-unlock PIN: Argon2id(PIN) wraps the account key. ---
+// Kept in storage.local so it survives browser restarts. That is weaker than memory-only: a
+// 6-digit PIN can be brute-forced offline by someone who copies the browser profile, which is why
+// the PIN's Argon2id cost is high and wrong guesses in the app delete it after PIN_MAX_ATTEMPTS.
 
 export interface PinBlob {
   salt: string;
@@ -46,15 +53,18 @@ export interface PinBlob {
 
 export const PIN_MAX_ATTEMPTS = 5;
 
+const pinArea = () => browser.storage.local;
+const PIN_KEY = 'quickUnlockPin';
+
 export async function getPinBlob(): Promise<PinBlob | null> {
-  const r = await area().get('pin');
-  return (r.pin as PinBlob | undefined) ?? null;
+  const r = await pinArea().get(PIN_KEY);
+  return (r[PIN_KEY] as PinBlob | undefined) ?? null;
 }
 export async function setPinBlob(blob: PinBlob): Promise<void> {
-  await area().set({ pin: blob });
+  await pinArea().set({ [PIN_KEY]: blob });
 }
 export async function clearPinBlob(): Promise<void> {
-  await area().remove(['pin']);
+  await pinArea().remove([PIN_KEY]);
 }
 
 // The recovery secret is shown once; keep it (memory only) until the user confirms the kit.

@@ -1,7 +1,7 @@
 # Installing Voult
 
 Voult has two parts you install yourself: the **server** (a small Docker container that stores
-only encrypted data) and the **browser extension**. The Android app is not built yet.
+only encrypted data) and the **browser extension**. The Android app has its own guide: [ANDROID.md](ANDROID.md).
 
 ## 1. Server (Docker)
 

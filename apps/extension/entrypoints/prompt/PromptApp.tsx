@@ -22,6 +22,22 @@ export function PromptApp() {
   const decide = (decision: PromptDecision) =>
     void browser.runtime.sendMessage({ type: 'prompt:decide', id, decision });
 
+  useEffect(() => window.focus(), []);
+
+  // Escape cancels (the prompt is a modal over the page).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape')
+        void browser.runtime.sendMessage({
+          type: 'prompt:decide',
+          id,
+          decision: { action: 'cancel' },
+        });
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [id]);
+
   if (req === undefined) return <div className="p-6 text-muted">Loading…</div>;
   if (req === null)
     return (
@@ -30,10 +46,10 @@ export function PromptApp() {
 
   return (
     <main className="fade-in flex h-screen flex-col gap-4 p-5">
-      <div className="flex items-center gap-3">
-        <Logo size={32} />
+      <div className="glass-strong flex items-center gap-3 rounded-2xl p-3.5">
+        <Logo size={40} />
         <div className="min-w-0">
-          <h1 className="font-semibold">
+          <h1 className="text-base font-extrabold tracking-tight">
             {req.kind === 'create' ? 'Create a passkey' : 'Sign in with a passkey'}
           </h1>
           <p className="truncate text-xs text-muted">{req.host}</p>
@@ -54,8 +70,9 @@ export function PromptApp() {
           </p>
           <fieldset className="space-y-2">
             <legend className="sr-only">Where to save it</legend>
-            <label className="flex items-center gap-2 rounded-lg border border-border p-2">
+            <label className="glass flex cursor-pointer items-center gap-2.5 rounded-xl p-3 has-[:checked]:border-primary/60 has-[:checked]:bg-primary/10">
               <input
+                className="accent-[var(--primary)]"
                 type="radio"
                 name="dest"
                 checked={choice === 'new'}
@@ -66,9 +83,10 @@ export function PromptApp() {
             {req.candidates.map((c) => (
               <label
                 key={c.id}
-                className="flex items-center gap-2 rounded-lg border border-border p-2"
+                className="glass flex cursor-pointer items-center gap-2.5 rounded-xl p-3 has-[:checked]:border-primary/60 has-[:checked]:bg-primary/10"
               >
                 <input
+                  className="accent-[var(--primary)]"
                   type="radio"
                   name="dest"
                   checked={choice === c.id}
@@ -113,12 +131,14 @@ export function PromptApp() {
               <li key={o.credentialId}>
                 <button
                   data-testid="passkey-option"
-                  className="flex w-full items-center gap-3 rounded-lg border border-border p-3 text-left hover:bg-surface focus-visible:outline-2 focus-visible:outline-primary"
+                  className="glass flex w-full items-center gap-3 rounded-2xl p-3 text-left transition-all hover:-translate-y-px hover:bg-surface-strong"
                   onClick={() =>
                     decide({ action: 'use', itemId: o.itemId, credentialId: o.credentialId })
                   }
                 >
-                  <KeyRound size={18} className="text-primary" />
+                  <span className="brand-bg grid size-9 place-items-center rounded-xl">
+                    <KeyRound size={16} />
+                  </span>
                   <span className="min-w-0">
                     <span className="block truncate font-medium">{o.userName || o.title}</span>
                     <span className="block truncate text-xs text-muted">

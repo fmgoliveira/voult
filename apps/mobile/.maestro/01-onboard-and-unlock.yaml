@@ -1,0 +1,50 @@
+# Create an account against a local server, confirm the recovery kit, lock, and unlock again.
+# Prereq: server on the host (e.g. docker compose up) and `adb reverse tcp:6565 tcp:6565`.
+appId: com.franciscoliveira.voult
+env:
+  EMAIL: maestro@example.com
+  PASSWORD: correct horse battery staple
+  SERVER_URL: http://localhost:6565
+---
+- clearState
+- launchApp
+- tapOn:
+    id: email
+- inputText: ${EMAIL}
+- tapOn:
+    id: password
+- inputText: ${PASSWORD}
+- tapOn:
+    id: confirm
+- inputText: ${PASSWORD}
+- tapOn:
+    id: server
+- eraseText: 60
+- inputText: ${SERVER_URL}
+- hideKeyboard
+- tapOn:
+    id: submit
+# Recovery kit is mandatory before anything can be saved.
+- assertVisible:
+    id: recovery-secret
+- assertNotVisible: 'Your vault is empty'
+- scrollUntilVisible:
+    element:
+      text: 'I stored my recovery kit.*'
+- tapOn:
+    text: 'I stored my recovery kit.*'
+- tapOn:
+    id: continue
+- assertVisible: 'Your vault is empty'
+# Lock from settings, then unlock with the master password.
+- tapOn:
+    id: tab-settings
+- tapOn: 'Lock now'
+- assertVisible: 'Vault locked'
+- tapOn:
+    id: password
+- inputText: ${PASSWORD}
+- hideKeyboard
+- tapOn:
+    id: unlock-password
+- assertVisible: 'Your vault is empty'

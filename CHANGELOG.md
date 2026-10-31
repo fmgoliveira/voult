@@ -2,6 +2,35 @@
 
 ## Unreleased
 
+### UI polish (extension + Android)
+
+- Extension autofill: the logins list opens by itself when you focus an empty login field; arrow keys highlight an entry and Enter fills it (Enter only fills after an arrow key, so it still submits normally); typing, Tab or Escape closes the list and the text goes straight into the field
+- Extension autofill with a locked vault: the list opens an unlock box (PIN if set, else master password) inside an extension iframe, so the website can never see what you type; click it or press ArrowDown to focus it, then the logins appear
+- Quick-unlock PIN is now persistent (survives browser restarts): stored encrypted on the device, with a stronger Argon2id cost, wiped after 5 wrong attempts or on sign-out
+- PIN fixes: unlocking with the master password no longer deletes the PIN; the lock screen shows only the PIN input (with a button for the master password) when a PIN exists; the PIN is set in Settings only
+- Passkeys can be removed from a login (confirmation in both apps)
+- Extension autofill: the logins list opens by itself when you focus an empty login field; arrow keys highlight an entry and Enter fills it (Enter only fills after an arrow key, so it still submits normally); typing, Tab or Escape closes the list and the text goes straight into the field
+- Passkeys can be removed from a login (confirmation in both apps)
+- PIN unlock fix: unlocking with the master password no longer deletes the PIN; the lock screen shows only the PIN input (with a button for the master password) when a PIN exists, and the PIN is set in Settings only
+- Calmer, cleaner look in a single blue accent: near-flat backgrounds with one faint glow, opaque surfaces with hairline borders, no heavy blur or glow (`@voult/ui-tokens`, extension CSS)
+- Android: removed shadows/elevation, which drew a dark rectangle under translucent inputs and cards
+- Android: bottom-sheet drawers (new-item menu, confirmations, password generator); own toggle, checkbox and slider instead of the platform switch; cleaner Generator page with strength meter, sliders and per-option toggles; the generator drawer opens from the login editor with every option
+- Extension: own dropdown (`Select`) and checkbox components instead of native controls
+- Logins have one "email or username" field (inferred on save) with suggestions ranked by how many logins use each value
+- Logins show the website's own `/favicon.ico` (fetched directly from the site, never via a third party; setting "Website icons"), falling back to the letter avatar
+- Tap any field in a detail view to copy it, in both apps
+- Page transitions in both apps (slide for detail/editor, fade between tabs)
+- Extension: toolbar/store icon; setting "Open in a centred window" for a popup in the middle of the screen
+- Core: `inferIdentifier`, `identifierSuggestions`, `faviconUrl`, password strength estimate
+
+### Phase 6 — Android app MVP
+
+- `@voult/core` gains a platform-neutral client: `ClientStore` contract, HTTP with rotating refresh, sync engine (push/pull/409 merge), vault client, account service, search + form helpers; pluggable Argon2id. The browser extension now runs on it (e2e unchanged and green)
+- Expo Router app: onboarding, mandatory recovery kit, unlock (master password / biometric / PIN), vault list + detail + edit, trash, generator, authenticator with live codes and **camera QR scan**, settings, device list
+- SQLite store (`expo-sqlite`) with the same contract tests; tokens in `expo-secure-store`
+- Kotlin Expo module `voult-native`: native Argon2id, Keystore keys (biometric-gated and device-bound), `FLAG_SECURE`, sensitive clipboard copy with auto-clear
+- Maestro flows and `docs/ANDROID.md`. **Not yet compiled or run on a device** (no Android SDK available)
+
 ### Deployment
 
 - Removed Caddy; Docker Compose publishes the server on host port 6565 for your own reverse proxy

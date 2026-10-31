@@ -15,6 +15,10 @@ export interface Settings {
   passkeysEnabled: boolean;
   /** rpIds / hosts where Voult must not intercept passkey requests. */
   passkeyOptOut: string[];
+  /** Fetch each website's own icon for logins (no third party involved). */
+  showIcons: boolean;
+  /** Open Voult in a window centred on screen instead of the toolbar popup. */
+  centeredWindow: boolean;
 }
 
 export const DEFAULT_SERVER_URL = 'https://voult.franciscoliveira.com';
@@ -29,6 +33,8 @@ export const DEFAULT_SETTINGS: Settings = {
   neverSave: [],
   passkeysEnabled: true,
   passkeyOptOut: [],
+  showIcons: true,
+  centeredWindow: false,
 };
 
 const item = storage.defineItem<Settings>('local:settings', { fallback: DEFAULT_SETTINGS });
@@ -46,10 +52,4 @@ export async function updateSettings(patch: Partial<Settings>): Promise<Settings
 export const watchSettings = (cb: (s: Settings) => void) =>
   item.watch((v) => cb({ ...DEFAULT_SETTINGS, ...v }));
 
-export const normalizeServerUrl = (url: string): string => {
-  const u = new URL(url.trim());
-  if (u.protocol !== 'https:' && !['localhost', '127.0.0.1'].includes(u.hostname)) {
-    throw new Error('Server URL must use https');
-  }
-  return u.origin;
-};
+export { normalizeServerUrl } from '@voult/core';

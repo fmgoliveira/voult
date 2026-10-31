@@ -15,3 +15,17 @@ export * from './exchange/snapshot';
 export * from './webauthn/authenticator';
 export { EFF_WORDLIST } from './wordlists/eff-large';
 export * from './matching/url';
+
+export * from './client/types';
+export * from './client/errors';
+export * from './client/store';
+export * from './client/memory-store';
+export * from './client/http';
+export * from './client/sync';
+export * from './client/vault-client';
+export * from './client/account';
+export * from './client/search';
+export * from './client/totp-input';
+export * from './client/identity';
+export * from './client/server-url';
+export * from './client/blank-item';

@@ -33,10 +33,17 @@ export type ContentRequest =
   | { type: 'capture:accept' }
   | { type: 'capture:dismiss'; never: boolean }
   | { type: 'passkey:create'; options: PasskeyCreateOptions }
-  | { type: 'passkey:get'; options: PasskeyGetOptions };
+  | { type: 'passkey:get'; options: PasskeyGetOptions }
+  | { type: 'prompt:dismiss'; id: string };
 
 /** Background -> content script (sent to a specific tab/frame). */
-export type BackgroundCommand = { type: 'autofill:trigger' } | { type: 'autofill:generate-here' };
+export type BackgroundCommand =
+  | { type: 'autofill:trigger' }
+  | { type: 'autofill:generate-here' }
+  | { type: 'prompt:show'; id: string }
+  | { type: 'prompt:hide' }
+  | { type: 'unlock:done' }
+  | { type: 'unlock:close' };
 
 export interface CapturePrompt {
   action: 'save' | 'update';

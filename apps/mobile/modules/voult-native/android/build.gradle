@@ -1,0 +1,22 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'expo.modules.voultnative'
+version = '0.1.0'
+
+android {
+  namespace "expo.modules.voultnative"
+  defaultConfig {
+    versionCode 1
+    versionName "0.1.0"
+  }
+}
+
+dependencies {
+  // Hardware-backed biometric prompt bound to a Keystore cipher.
+  implementation 'androidx.biometric:biometric:1.1.0'
+  // Native Argon2id (Hermes has no WebAssembly, pure JS is far too slow).
+  implementation 'com.lambdapioneer.argon2kt:argon2kt:1.6.0'
+}

@@ -22,6 +22,13 @@ export default defineConfig({
         description: 'Fill login on this page',
       },
     },
+    // The passkey prompt is shown over the page in an iframe, so pages must be able to embed it.
+    web_accessible_resources: [
+      {
+        resources: ['prompt.html', 'unlock.html', 'chunks/*', 'assets/*'],
+        matches: ['https://*/*', 'http://localhost/*', 'http://127.0.0.1/*'],
+      },
+    ],
     host_permissions: ['https://*/*', 'http://localhost/*', 'http://127.0.0.1/*'],
     browser_specific_settings: {
       gecko: {

@@ -1,5 +1,6 @@
+import { Download, KeyRound, Lock, Mail, Server, ShieldAlert } from 'lucide-react';
 import { useState } from 'react';
-import { Button, ErrorText, Field, Input, Logo } from '../components/ui';
+import { Button, Checkbox, ErrorText, Field, Input, Logo, OtpInput } from '../components/ui';
 import { ApiError } from '../lib/api';
 import { useAsyncAction } from '../lib/hooks';
 import { buildRecoveryKitPdf, downloadBytes } from '../lib/recovery-kit';
@@ -27,13 +28,18 @@ function Shell({
   children: React.ReactNode;
 }) {
   return (
-    <main className="fade-in flex h-full flex-col gap-4 overflow-auto p-6">
-      <div className="flex flex-col items-center gap-2 pt-2 text-center">
-        <Logo size={40} />
-        <h1 className="text-lg font-semibold">{title}</h1>
-        {subtitle && <p className="text-xs text-muted">{subtitle}</p>}
+    <main className="fade-in flex h-full flex-col overflow-auto px-5 py-6">
+      <div className="flex flex-col items-center gap-2.5 pb-5 text-center">
+        <div className="relative">
+          <div className="absolute inset-0 -z-10 scale-[1.9] rounded-full bg-primary/35 blur-2xl" />
+          <div>
+            <Logo size={58} />
+          </div>
+        </div>
+        <h1 className="text-xl font-extrabold tracking-tight">{title}</h1>
+        {subtitle && <p className="max-w-[270px] text-xs text-muted">{subtitle}</p>}
       </div>
-      {children}
+      <div className="glass-strong space-y-3.5 rounded-3xl p-5">{children}</div>
     </main>
   );
 }
@@ -83,6 +89,7 @@ export function Welcome() {
           {(id) => (
             <Input
               id={id}
+              leading={<Mail size={15} />}
               type="email"
               autoComplete="username"
               required
@@ -102,6 +109,7 @@ export function Welcome() {
           {(id) => (
             <Input
               id={id}
+              leading={<Lock size={15} />}
               type="password"
               autoComplete={mode === 'create' ? 'new-password' : 'current-password'}
               required
@@ -115,6 +123,7 @@ export function Welcome() {
             {(id) => (
               <Input
                 id={id}
+                leading={<Lock size={15} />}
                 type="password"
                 autoComplete="new-password"
                 required
@@ -125,12 +134,15 @@ export function Welcome() {
           </Field>
         )}
         <details className="text-xs text-muted">
-          <summary className="cursor-pointer">Server</summary>
+          <summary className="flex cursor-pointer items-center gap-1.5 font-medium select-none">
+            <Server size={13} /> Server
+          </summary>
           <div className="pt-2">
             <Field label="Server URL">
               {(id) => (
                 <Input
                   id={id}
+                  leading={<Server size={15} />}
                   type="url"
                   value={serverUrl}
                   onChange={(e) => setServerUrl(e.target.value)}
@@ -146,7 +158,7 @@ export function Welcome() {
       </form>
       <button
         type="button"
-        className="text-center text-xs text-primary underline"
+        className="w-full text-center text-xs font-semibold text-primary hover:underline"
         onClick={() => {
           setError(null);
           setMode(mode === 'create' ? 'signin' : 'create');
@@ -188,62 +200,45 @@ export function RecoveryKit({
         <div className="space-y-3">
           <p
             data-testid="recovery-secret"
-            className="select-all rounded-lg border border-border bg-surface p-3 text-center font-mono text-sm tracking-wider break-all"
+            className="select-all rounded-2xl border border-primary/30 bg-primary/10 p-3.5 text-center font-mono text-[15px] font-semibold tracking-[0.14em] break-all"
           >
             {secret}
           </p>
           <Button variant="secondary" className="w-full" onClick={download} disabled={busy}>
-            Download recovery kit (PDF)
+            <Download size={16} /> Download recovery kit (PDF)
           </Button>
           <ErrorText>{error}</ErrorText>
         </div>
       ) : (
-        <p className="rounded-lg border border-border bg-surface p-3 text-xs text-muted">
+        <p className="flex gap-2 rounded-2xl border border-border bg-surface p-3 text-xs text-muted">
+          <ShieldAlert size={16} className="mt-px shrink-0" />
           The secret key is only shown once, right after signup. If you did not save it, you can
           still continue with your master password.
         </p>
       )}
-      <label className="flex items-start gap-2 text-sm">
-        <input
-          type="checkbox"
-          className="mt-1"
-          checked={saved}
-          onChange={(e) => setSaved(e.target.checked)}
-        />
-        <span>
-          I stored my recovery kit somewhere safe. I understand Voult cannot reset my password.
-        </span>
-      </label>
-      <Button disabled={!saved} onClick={() => void confirmRecoveryKit()}>
+      <Checkbox checked={saved} onChange={setSaved} className="text-xs leading-snug text-muted">
+        I stored my recovery kit somewhere safe. I understand Voult cannot reset my password.
+      </Checkbox>
+      <Button className="w-full" disabled={!saved} onClick={() => void confirmRecoveryKit()}>
         Continue
       </Button>
     </Shell>
   );
 }
 
-export function Unlock({
-  email,
-  pin,
-  pinEnabled,
-}: {
-  email: string;
-  pin: boolean;
-  pinEnabled: boolean;
-}) {
+export function Unlock({ email, pin }: { email: string; pin: boolean }) {
   const [password, setPassword] = useState('');
-  const [newPin, setNewPin] = useState('');
   const [pinCode, setPinCode] = useState('');
   const [usePin, setUsePin] = useState(pin);
   const { busy, error, run, setError } = useAsyncAction();
 
   const submitPassword = (e: React.FormEvent) => {
     e.preventDefault();
-    void run(() => unlockWithPassword(password, newPin || undefined), friendly);
+    void run(() => unlockWithPassword(password), friendly);
   };
-  const submitPin = (e: React.FormEvent) => {
-    e.preventDefault();
+  const submitPin = (code: string) => {
     void run(async () => {
-      const r = await unlockWithPin(pinCode);
+      const r = await unlockWithPin(code);
       if (!r.ok) {
         setPinCode('');
         throw new Error(
@@ -259,27 +254,22 @@ export function Unlock({
   return (
     <Shell title="Vault locked" subtitle={email}>
       {usePin && pin ? (
-        <form onSubmit={submitPin} className="space-y-3">
-          <Field label="PIN">
-            {(id) => (
-              <Input
-                id={id}
-                type="password"
-                inputMode="numeric"
-                autoFocus
-                autoComplete="off"
-                value={pinCode}
-                onChange={(e) => setPinCode(e.target.value)}
-              />
-            )}
-          </Field>
+        <div className="space-y-4">
+          <p className="flex items-center justify-center gap-1.5 text-xs text-muted">
+            <KeyRound size={13} /> Enter your 6-digit PIN
+          </p>
+          <OtpInput
+            label="PIN"
+            value={pinCode}
+            onChange={setPinCode}
+            onComplete={submitPin}
+            disabled={busy}
+            autoFocus
+          />
           <ErrorText>{error}</ErrorText>
-          <Button type="submit" className="w-full" disabled={busy || !pinCode}>
-            Unlock
-          </Button>
           <button
             type="button"
-            className="w-full text-center text-xs text-primary underline"
+            className="w-full text-center text-xs font-semibold text-primary hover:underline"
             onClick={() => {
               setError(null);
               setUsePin(false);
@@ -287,13 +277,14 @@ export function Unlock({
           >
             Use master password
           </button>
-        </form>
+        </div>
       ) : (
         <form onSubmit={submitPassword} className="space-y-3">
           <Field label="Master password">
             {(id) => (
               <Input
                 id={id}
+                leading={<Lock size={15} />}
                 type="password"
                 autoFocus
                 autoComplete="current-password"
@@ -302,23 +293,6 @@ export function Unlock({
               />
             )}
           </Field>
-          {pinEnabled && (
-            <Field
-              label="Quick-unlock PIN (optional)"
-              hint="Kept in memory only; cleared when the browser closes."
-            >
-              {(id) => (
-                <Input
-                  id={id}
-                  type="password"
-                  inputMode="numeric"
-                  autoComplete="off"
-                  value={newPin}
-                  onChange={(e) => setNewPin(e.target.value)}
-                />
-              )}
-            </Field>
-          )}
           <ErrorText>{error}</ErrorText>
           <Button type="submit" className="w-full" disabled={busy || !password}>
             {busy ? 'Unlocking…' : 'Unlock'}
@@ -327,7 +301,7 @@ export function Unlock({
       )}
       <button
         type="button"
-        className="text-center text-xs text-muted underline"
+        className="w-full text-center text-xs text-muted hover:text-fg hover:underline"
         onClick={() =>
           confirm('Sign out and remove local data from this browser?') && void signOut()
         }
@@ -357,6 +331,7 @@ export function Reauth({ email }: { email: string }) {
           {(id) => (
             <Input
               id={id}
+              leading={<Lock size={15} />}
               type="password"
               autoFocus
               autoComplete="current-password"
@@ -372,7 +347,7 @@ export function Reauth({ email }: { email: string }) {
       </form>
       <button
         type="button"
-        className="text-center text-xs text-muted underline"
+        className="w-full text-center text-xs text-muted hover:text-fg hover:underline"
         onClick={() => confirm('Sign out and discard unsynced changes?') && void signOut()}
       >
         Sign out

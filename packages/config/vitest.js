@@ -9,7 +9,7 @@ export function vitestPreset({ coverageThreshold } = {}) {
       coverage: {
         provider: 'v8',
         include: ['src/**/*.ts'],
-        exclude: ['src/**/*.test.ts'],
+        exclude: ['src/**/*.test.ts', 'src/**/*.testkit.ts'],
         thresholds: coverageThreshold
           ? {
               lines: coverageThreshold,

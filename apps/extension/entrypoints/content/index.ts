@@ -9,6 +9,7 @@ import type {
   FillSecrets,
   QueryResponse,
 } from '../../lib/autofill/messages';
+import { PromptFrame } from '../../lib/autofill/prompt-frame';
 import { InPageUi, type MenuItem } from '../../lib/autofill/ui';
 
 async function send<T>(msg: ContentRequest): Promise<T | null> {
@@ -42,7 +43,10 @@ export default defineContentScript({
     const rescan = () => {
       det = detect(document);
       const focused = deepActive();
-      if (focused instanceof HTMLInputElement) onFocus(focused);
+      if (focused instanceof HTMLInputElement) {
+        onFocus(focused);
+        void maybeAutoOpen(focused);
+      }
       void maybeFillOtp();
     };
     const scheduleRescan = () => {
@@ -82,22 +86,38 @@ export default defineContentScript({
       ui.showIcon(el, () => void openMenu(el, form!));
     }
 
+    // Open the list by itself when an empty login field gets focus and there is something to offer.
+    const autoTried = new WeakSet<HTMLInputElement>();
+    async function maybeAutoOpen(el: HTMLInputElement) {
+      if (autoTried.has(el) || el.value !== '' || ui.menuOpen) return;
+      const form = formForField(det, el);
+      if (!form || (form.kind !== 'login' && form.kind !== 'username-step')) return;
+      autoTried.add(el);
+      await openMenu(el, form, true);
+    }
+
     document.addEventListener(
       'focusin',
       (e) => {
         const t = e.composedPath()[0];
-        if (t instanceof HTMLInputElement) onFocus(t);
+        if (t instanceof HTMLInputElement) {
+          onFocus(t);
+          void maybeAutoOpen(t);
+        }
       },
       true,
     );
     document.addEventListener(
       'focusout',
-      () =>
+      (e) => {
+        const t = e.composedPath()[0];
+        if (t instanceof HTMLInputElement) autoTried.delete(t);
         setTimeout(() => {
           const a = deepActive();
           if (!ui.menuOpen && !(a instanceof HTMLInputElement && formForField(det, a)))
             ui.hideIcon();
-        }, 150),
+        }, 150);
+      },
       true,
     );
     document.addEventListener(
@@ -110,12 +130,63 @@ export default defineContentScript({
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') ui.closeMenu();
     });
+
+    // Keyboard use of the dropdown. Focus never leaves the page's input, so typing just works.
+    document.addEventListener(
+      'keydown',
+      (e) => {
+        if (!ui.menuOpen || !e.isTrusted || deepActive() !== ui.anchorEl) return;
+        if (ui.frameOpen) {
+          // The unlock box is a separate page: ArrowDown moves into it, typing stays in the field.
+          if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            e.stopPropagation();
+            ui.focusFrame();
+          }
+          return;
+        }
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+          e.preventDefault();
+          e.stopPropagation();
+          ui.moveActive(e.key === 'ArrowDown' ? 1 : -1);
+        } else if (e.key === 'Enter' && ui.hasActive) {
+          // Only after the user chose an entry with the arrows; otherwise Enter submits as usual.
+          e.preventDefault();
+          e.stopPropagation();
+          ui.selectActive();
+        } else if (e.key === 'Tab') ui.closeMenu();
+      },
+      true,
+    );
+    // Typing means they want their own text: get out of the way.
+    document.addEventListener(
+      'input',
+      (e) => {
+        if (ui.menuOpen && e.isTrusted && e.composedPath()[0] === ui.anchorEl) ui.closeMenu();
+      },
+      true,
+    );
     addEventListener('scroll', () => ui.position(), true);
     addEventListener('resize', () => ui.position());
 
-    async function openMenu(field: HTMLInputElement, form: DetectedForm) {
-      if (ui.menuOpen) return ui.closeMenu();
+    let unlocking: { field: HTMLInputElement; form: DetectedForm } | null = null;
+
+    async function openMenu(field: HTMLInputElement, form: DetectedForm, auto = false) {
+      if (ui.menuOpen) return auto ? undefined : ui.closeMenu();
       const res = await send<QueryResponse>({ type: 'autofill:query' });
+      if (auto) {
+        // Automatic opening is for real matches or the unlock box, never "nothing here" notes, and
+        // only if the field is still the one being used.
+        const useful = res?.status === 'locked' || (res?.status === 'ok' && res.matches.length > 0);
+        if (!useful) return;
+        if (deepActive() !== field || field.value !== '' || ui.menuOpen) return;
+      }
+      if (res?.status === 'locked') {
+        // Unlock right here (PIN if one is set, else the master password), then show the logins.
+        unlocking = { field, form };
+        ui.showUnlockFrame(browser.runtime.getURL('/unlock.html' as never));
+        return;
+      }
       const items: MenuItem[] = [];
       let note: string | undefined;
       if (res?.status === 'ok') {
@@ -126,9 +197,7 @@ export default defineContentScript({
             onSelect: () => void fillItem(m.id, form),
           });
         }
-      } else if (res?.status === 'locked')
-        note = 'Voult is locked. Click the toolbar icon to unlock.';
-      else if (res?.status === 'disabled') note = 'Autofill is turned off.';
+      } else if (res?.status === 'disabled') note = 'Autofill is turned off.';
       else if (form.kind === 'login' || form.kind === 'username-step')
         note = 'No saved logins for this site.';
 
@@ -239,12 +308,33 @@ export default defineContentScript({
 
     // ------------------------------------------------------------ commands from the background
 
-    browser.runtime.onMessage.addListener((msg: BackgroundCommand | { type: 'capture:show' }) => {
-      if (msg.type === 'capture:show') void showCapturePrompt();
-      if (msg.type === 'autofill:trigger') void triggerFill();
-      if (msg.type === 'autofill:generate-here') void generateHere();
-      return undefined;
-    });
+    const promptFrame = new PromptFrame();
+    browser.runtime.onMessage.addListener(
+      (msg: BackgroundCommand | { type: 'capture:show' }, _sender, sendResponse) => {
+        if (msg.type === 'prompt:show') {
+          // Only the top frame hosts the prompt.
+          if (window !== window.top) return undefined;
+          promptFrame.show(msg.id, () => void send({ type: 'prompt:dismiss', id: msg.id }));
+          sendResponse(true);
+          return undefined;
+        }
+        if (msg.type === 'prompt:hide') promptFrame.hide();
+        if ((msg.type === 'unlock:done' || msg.type === 'unlock:close') && ui.frameOpen) {
+          const u = unlocking;
+          unlocking = null;
+          ui.closeMenu();
+          if (u) {
+            u.field.focus();
+            if (msg.type === 'unlock:done') void openMenu(u.field, u.form);
+          }
+          return undefined;
+        }
+        if (msg.type === 'capture:show') void showCapturePrompt();
+        if (msg.type === 'autofill:trigger') void triggerFill();
+        if (msg.type === 'autofill:generate-here') void generateHere();
+        return undefined;
+      },
+    );
 
     async function triggerFill() {
       det = detect(document);

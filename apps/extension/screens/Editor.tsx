@@ -1,16 +1,31 @@
 import {
+  blankItem,
   generatePassword,
+  identifierOf,
+  identifierSuggestions,
+  inferIdentifier,
   itemSchema,
+  siteNameFromUrl,
   type Item,
   type ItemType,
   type LoginItem,
 } from '@voult/core';
-import { Eye, EyeOff, Plus, Trash2, Wand2 } from 'lucide-react';
-import { useState } from 'react';
-import { Button, ErrorText, Field, IconButton, Input, Select } from '../components/ui';
+import { Eye, EyeOff, Mail, Plus, Trash2, User, Wand2 } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { browser } from 'wxt/browser';
+import {
+  Button,
+  Checkbox,
+  ErrorText,
+  Field,
+  IconButton,
+  Input,
+  Select,
+  TypeTile,
+} from '../components/ui';
 import { useAsyncAction } from '../lib/hooks';
 import { useNav } from '../lib/nav';
-import { parseTotpInput } from '../lib/totp-input';
+import { parseTotpInput } from '@voult/core';
 import { saveItem, saveLoginEdit, type ItemView, type VaultView } from '../lib/vault';
 
 const TYPE_LABEL: Record<ItemType, string> = {
@@ -21,62 +36,6 @@ const TYPE_LABEL: Record<ItemType, string> = {
   totp: '2FA code',
 };
 export const typeLabel = (t: ItemType) => TYPE_LABEL[t];
-
-export function blankItem(type: ItemType): Item {
-  const now = Date.now();
-  const base = {
-    title: '',
-    notes: '',
-    favorite: false,
-    pinned: false,
-    createdAt: now,
-    updatedAt: now,
-  };
-  switch (type) {
-    case 'login':
-      return {
-        ...base,
-        type,
-        username: '',
-        email: '',
-        password: '',
-        urls: [],
-        customFields: [],
-        passkeys: [],
-        passwordHistory: [],
-      };
-    case 'note':
-      return { ...base, type };
-    case 'card':
-      return { ...base, type, holder: '', number: '', expiry: '', cvv: '', pin: '' };
-    case 'identity':
-      return {
-        ...base,
-        type,
-        fullName: '',
-        email: '',
-        phone: '',
-        address: '',
-        birthday: '',
-        customFields: [],
-      };
-    case 'totp':
-      return {
-        ...base,
-        type,
-        totp: {
-          kind: 'totp',
-          secret: '',
-          algorithm: 'SHA1',
-          digits: 6,
-          period: 30,
-          counter: 0,
-          issuer: '',
-          account: '',
-        },
-      };
-  }
-}
 
 function PasswordField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const [show, setShow] = useState(false);
@@ -143,14 +102,80 @@ function Text({
   );
 }
 
+/** One input for "email or username": we work out which it is, and offer ones already in use. */
+function IdentifierField({
+  login,
+  items,
+  onChange,
+}: {
+  login: { username: string; email: string };
+  items: ItemView[];
+  onChange: (v: { username: string; email: string }) => void;
+}) {
+  const [focused, setFocused] = useState(false);
+  const value = identifierOf(login);
+  const suggestions = useMemo(
+    () =>
+      identifierSuggestions(
+        items.map((i) => i.item),
+        value,
+      ),
+    [items, value],
+  );
+  const isEmail = !!inferIdentifier(value).email;
+  return (
+    <Field label="Email or username">
+      {(id) => (
+        <div className="space-y-1.5">
+          <Input
+            id={id}
+            value={value}
+            autoComplete="off"
+            autoCapitalize="none"
+            spellCheck={false}
+            leading={isEmail ? <Mail size={15} /> : <User size={15} />}
+            onFocus={() => setFocused(true)}
+            onBlur={() => setTimeout(() => setFocused(false), 120)}
+            onChange={(e) => onChange(inferIdentifier(e.target.value))}
+          />
+          {focused && suggestions.length > 0 && (
+            <ul
+              aria-label="Previously used"
+              className="fade-in overflow-hidden rounded-xl border border-border bg-surface-solid"
+            >
+              {suggestions.map((s) => (
+                <li key={s.value}>
+                  <button
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => onChange(inferIdentifier(s.value))}
+                    className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm hover:bg-primary/8"
+                  >
+                    <span className="truncate">{s.value}</span>
+                    <span className="shrink-0 text-[11px] text-muted">
+                      {s.count} {s.count === 1 ? 'account' : 'accounts'}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+    </Field>
+  );
+}
+
 export function Editor({
   type,
   existing,
   vaults,
+  items,
 }: {
   type: ItemType;
   existing?: ItemView;
   vaults: VaultView[];
+  items: ItemView[];
 }) {
   const { back, open } = useNav();
   const [draft, setDraft] = useState<Item>(() => existing?.item ?? blankItem(type));
@@ -165,6 +190,30 @@ export function Editor({
     return t?.secret ?? '';
   });
   const { busy, error, run, setError } = useAsyncAction();
+
+  // Creating a login while looking at a website: start from that site's name and address.
+  useEffect(() => {
+    if (existing || type !== 'login') return;
+    let live = true;
+    void browser.tabs
+      .query({ active: true, lastFocusedWindow: true, windowType: 'normal' })
+      .then(([tab]) => {
+        const url = tab?.url;
+        if (!live || !url || !/^https?:/i.test(url)) return;
+        setDraft((d) => {
+          if (d.type !== 'login' || d.title || d.urls.length) return d;
+          return {
+            ...d,
+            title: siteNameFromUrl(url),
+            urls: [{ url: new URL(url).origin, match: 'domain' }],
+          };
+        });
+      })
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [existing, type]);
 
   const patch = (p: Record<string, unknown>) => setDraft((d) => ({ ...d, ...p }) as Item);
   const d = draft as Item & Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -212,7 +261,7 @@ export function Editor({
         save();
       }}
     >
-      <div className="flex items-center gap-2 border-b border-border p-3">
+      <div className="flex items-center gap-2 px-3 pt-3 pb-2">
         <Button
           type="button"
           variant="ghost"
@@ -220,22 +269,23 @@ export function Editor({
         >
           Cancel
         </Button>
-        <h2 className="flex-1 text-center font-medium">{titleText}</h2>
+        <h2 className="flex flex-1 items-center justify-center gap-2 text-center text-sm font-bold">
+          <TypeTile type={draft.type} size={24} />
+          {titleText}
+        </h2>
         <Button type="submit" disabled={busy}>
           Save
         </Button>
       </div>
-      <div className="flex-1 space-y-3 overflow-auto p-4">
+      <div className="glass mx-3 mb-3 flex-1 space-y-3.5 overflow-auto rounded-3xl p-4">
         <Text label="Title" value={draft.title} onChange={(v) => patch({ title: v })} />
 
         {draft.type === 'login' && (
           <>
-            <Text label="Username" value={d.username} onChange={(v) => patch({ username: v })} />
-            <Text
-              label="Email"
-              type="email"
-              value={d.email}
-              onChange={(v) => patch({ email: v })}
+            <IdentifierField
+              login={{ username: d.username, email: d.email }}
+              items={items}
+              onChange={(v) => patch(v)}
             />
             <PasswordField value={d.password} onChange={(v) => patch({ password: v })} />
             <div className="space-y-1">
@@ -410,7 +460,7 @@ export function Editor({
               rows={4}
               value={draft.notes}
               onChange={(e) => patch({ notes: e.target.value })}
-              className="w-full rounded-lg border border-border bg-bg p-2 text-sm focus-visible:outline-2 focus-visible:outline-primary"
+              className="w-full rounded-xl border border-border bg-surface p-3 text-sm transition-colors hover:border-border-strong focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:outline-0"
             />
           )}
         </Field>
@@ -433,14 +483,13 @@ export function Editor({
             )}
           </Field>
         )}
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={draft.favorite}
-            onChange={(e) => patch({ favorite: e.target.checked })}
-          />{' '}
+        <Checkbox
+          checked={draft.favorite}
+          onChange={(v) => patch({ favorite: v })}
+          className="text-sm font-medium"
+        >
           Favourite
-        </label>
+        </Checkbox>
         <ErrorText>{error}</ErrorText>
       </div>
     </form>

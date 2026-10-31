@@ -2,37 +2,73 @@
 
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 
+/*
+ * Design tokens. Mirrors @voult/ui-tokens (the Android app reads the TS version); keep in sync.
+ * Look: calm and clean. Flat background with one faint blue glow, opaque surfaces, one blue accent.
+ */
 :root,
 [data-theme='light'] {
-  --bg: #ffffff;
-  --surface: #f5f6f8;
-  --fg: #14161a;
-  --muted: #5b6270;
-  --border: #e1e4ea;
-  --primary: #4f46e5;
+  --bg: #f5f7fb;
+  --surface: #ffffff;
+  --surface-strong: #ffffff;
+  --surface-solid: #ffffff;
+  --fg: #0f172a;
+  --muted: #64748b;
+  --border: rgba(15, 23, 42, 0.09);
+  --border-strong: rgba(15, 23, 42, 0.18);
+  --primary: #2563eb;
   --primary-fg: #ffffff;
+  --accent: #0ea5e9;
   --danger: #dc2626;
+  --success: #059669;
+  --brand: linear-gradient(135deg, #2f6df0 0%, #2563eb 100%);
+  --brand-glow: rgba(37, 99, 235, 0.3);
+  --shadow: 0 1px 2px rgba(15, 23, 42, 0.05), 0 4px 14px -8px rgba(15, 23, 42, 0.12);
+  --blob-1: rgba(37, 99, 235, 0.07);
+  --base-a: #f5f7fb;
+  --base-b: #f5f7fb;
+  --scrim: rgba(15, 23, 42, 0.35);
+  color-scheme: light;
 }
 [data-theme='dark'] {
-  --bg: #0f1115;
-  --surface: #181b21;
-  --fg: #f2f4f8;
-  --muted: #9aa3b2;
-  --border: #2a2f39;
-  --primary: #818cf8;
-  --primary-fg: #0f1115;
+  --bg: #0b1120;
+  --surface: #131b2e;
+  --surface-strong: #18223a;
+  --surface-solid: #131b2e;
+  --fg: #e8edf7;
+  --muted: #8b97b1;
+  --border: rgba(148, 163, 200, 0.14);
+  --border-strong: rgba(148, 163, 200, 0.26);
+  --primary: #4f8cff;
+  --primary-fg: #ffffff;
+  --accent: #38bdf8;
   --danger: #f87171;
+  --success: #34d399;
+  --brand: linear-gradient(135deg, #5b95ff 0%, #3b78f5 100%);
+  --brand-glow: rgba(79, 140, 255, 0.3);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 18px -10px rgba(0, 0, 0, 0.6);
+  --blob-1: rgba(79, 140, 255, 0.1);
+  --base-a: #0b1120;
+  --base-b: #0b1120;
+  --scrim: rgba(2, 6, 18, 0.6);
+  color-scheme: dark;
 }
 
 @theme inline {
   --color-bg: var(--bg);
   --color-surface: var(--surface);
+  --color-surface-strong: var(--surface-strong);
+  --color-surface-solid: var(--surface-solid);
   --color-fg: var(--fg);
   --color-muted: var(--muted);
   --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
   --color-primary: var(--primary);
   --color-primary-fg: var(--primary-fg);
+  --color-accent: var(--accent);
   --color-danger: var(--danger);
+  --color-success: var(--success);
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 }
 
 html,
@@ -42,28 +78,121 @@ body,
 }
 body {
   margin: 0;
-  background: var(--bg);
   color: var(--fg);
-  font-family:
-    system-ui,
-    -apple-system,
-    'Segoe UI',
-    Roboto,
-    sans-serif;
+  font-family: var(--font-sans);
   font-size: 14px;
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+  background:
+    radial-gradient(520px 260px at 50% -8%, var(--blob-1), transparent 70%),
+    linear-gradient(180deg, var(--base-a), var(--base-b));
+  background-attachment: fixed;
 }
+
 .popup-frame {
   width: 380px;
   height: 580px;
 }
+/* Opened as a centred window: fill it instead of using the fixed popup size. */
+.popup-frame.window-mode {
+  width: 100%;
+  max-width: 460px;
+  height: 100vh;
+}
+
+/* Embedded in a web page (passkey prompt, unlock box): never show scrollbars. */
+html.embed,
+html.embed body {
+  overflow: hidden;
+}
+html.embed * {
+  scrollbar-width: none;
+}
+html.embed *::-webkit-scrollbar {
+  display: none;
+}
+
+/* ---- surfaces ---- */
+.glass {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+.glass-strong {
+  background: var(--surface-strong);
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow);
+}
+.brand-bg {
+  background: var(--brand);
+  color: #fff;
+}
+.brand-glow {
+  box-shadow: 0 6px 16px -8px var(--brand-glow);
+}
+.text-gradient {
+  color: var(--primary);
+}
+
+/* ---- thin scrollbars ---- */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* ---- motion (disabled for people who ask) ---- */
 @media (prefers-reduced-motion: no-preference) {
   .fade-in {
-    animation: fade-in 120ms ease-out;
+    animation: fade-in 180ms cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+  .pop-in {
+    animation: pop-in 180ms cubic-bezier(0.2, 0.9, 0.3, 1.1);
+  }
+  /* Page transitions: forward pages slide in from the right, back pages from the left. */
+  .page-forward {
+    animation: page-forward 220ms cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+  .page-back {
+    animation: page-back 220ms cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+  .page-fade {
+    animation: fade-in 200ms ease-out;
+  }
+  .scrim-in {
+    animation: scrim-in 160ms ease-out;
   }
   @keyframes fade-in {
     from {
       opacity: 0;
-      transform: translateY(2px);
+      transform: translateY(4px);
+    }
+  }
+  @keyframes pop-in {
+    from {
+      opacity: 0;
+      transform: scale(0.96) translateY(6px);
+    }
+  }
+  @keyframes page-forward {
+    from {
+      opacity: 0;
+      transform: translateX(28px);
+    }
+  }
+  @keyframes page-back {
+    from {
+      opacity: 0;
+      transform: translateX(-28px);
+    }
+  }
+  @keyframes scrim-in {
+    from {
+      opacity: 0;
     }
   }
 }
