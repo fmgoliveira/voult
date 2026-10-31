@@ -12,6 +12,8 @@ test('import a CSV, check password health, switch to Portuguese', async () => {
   test.setTimeout(90_000);
   const { popup: page } = await env.profile('p9');
   await createAccount(page, env.serverUrl);
+  // The popup opens ready to search.
+  await expect(page.getByLabel('Search vault')).toBeFocused();
 
   const dir = mkdtempSync(path.join(tmpdir(), 'voult-import-'));
   const csv = path.join(dir, 'passwords.csv');

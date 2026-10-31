@@ -8,6 +8,7 @@
 
 ### Extension
 
+- The vault search box is focused when the popup opens, so you can type straight away
 - Toolbar badge with the number of logins that match the active tab (hidden while locked or when there are none)
 - Opening the popup on a site with matching logins starts filtered to them; the chip at the top removes the filter
 

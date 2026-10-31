@@ -155,6 +155,7 @@ function List({ items, vaults }: { items: ItemView[]; vaults: VaultView[] }) {
         <div className="flex gap-2">
           <SearchInput
             aria-label="Search vault"
+            autoFocus
             placeholder="Search your vault"
             value={query.text}
             onChange={(e) => patchQuery({ text: e.target.value })}
