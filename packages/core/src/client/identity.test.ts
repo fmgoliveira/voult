@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { blankItem } from './blank-item';
 import { faviconUrl, identifierSuggestions, inferIdentifier, identifierOf } from './identity';
+import { siteNameFromUrl } from '../matching/url';
 
 const login = (username: string, email: string) => ({
   ...blankItem('login'),
@@ -56,5 +57,15 @@ describe('faviconUrl', () => {
     expect(faviconUrl([{ url: 'http://localhost:3000/x' }])).toBe(
       'http://localhost:3000/favicon.ico',
     );
+  });
+});
+
+describe('siteNameFromUrl', () => {
+  it('derives a title from the registrable domain', () => {
+    expect(siteNameFromUrl('https://www.github.com/login')).toBe('Github');
+    expect(siteNameFromUrl('https://accounts.example.co.uk/x')).toBe('Example');
+    expect(siteNameFromUrl('http://localhost:3000')).toBe('Localhost');
+    expect(siteNameFromUrl('chrome://extensions')).toBe('Extensions');
+    expect(siteNameFromUrl('')).toBe('');
   });
 });

@@ -61,3 +61,12 @@ export function matchLogin(login: Pick<LoginItem, 'urls'>, pageUrl: string): boo
   if (blocked) return false;
   return rules.some((r) => r.match !== 'never' && ruleMatches(r, pageUrl));
 }
+
+/** A readable default title for a login created on a page: "github.com" → "Github". */
+export function siteNameFromUrl(raw: string): string {
+  const host = hostnameOf(raw);
+  if (!host) return '';
+  const p = parse(host, { allowPrivateDomains: true });
+  const name = (p.isIp ? host : (p.domainWithoutSuffix ?? host)).replace(/^www\./, '');
+  return name ? name[0]!.toUpperCase() + name.slice(1) : '';
+}

@@ -5,12 +5,14 @@ import {
   identifierSuggestions,
   inferIdentifier,
   itemSchema,
+  siteNameFromUrl,
   type Item,
   type ItemType,
   type LoginItem,
 } from '@voult/core';
 import { Eye, EyeOff, Mail, Plus, Trash2, User, Wand2 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { browser } from 'wxt/browser';
 import {
   Button,
   Checkbox,
@@ -188,6 +190,30 @@ export function Editor({
     return t?.secret ?? '';
   });
   const { busy, error, run, setError } = useAsyncAction();
+
+  // Creating a login while looking at a website: start from that site's name and address.
+  useEffect(() => {
+    if (existing || type !== 'login') return;
+    let live = true;
+    void browser.tabs
+      .query({ active: true, lastFocusedWindow: true, windowType: 'normal' })
+      .then(([tab]) => {
+        const url = tab?.url;
+        if (!live || !url || !/^https?:/i.test(url)) return;
+        setDraft((d) => {
+          if (d.type !== 'login' || d.title || d.urls.length) return d;
+          return {
+            ...d,
+            title: siteNameFromUrl(url),
+            urls: [{ url: new URL(url).origin, match: 'domain' }],
+          };
+        });
+      })
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [existing, type]);
 
   const patch = (p: Record<string, unknown>) => setDraft((d) => ({ ...d, ...p }) as Item);
   const d = draft as Item & Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any

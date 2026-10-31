@@ -16,45 +16,25 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, {
-  Circle,
-  Defs,
-  LinearGradient as SvgLinear,
-  Path,
-  RadialGradient,
-  Rect,
-  Stop,
-} from 'react-native-svg';
+import Svg, { Defs, LinearGradient as SvgLinear, Path, Rect, Stop } from 'react-native-svg';
 import { useApp } from '../lib/app-store';
 import { useTheme } from './theme';
 
 // ------------------------------------------------------------------ background
 
-/** Soft colour blobs over a vertical gradient (the "aurora" behind the glass). */
+/**
+ * Page background: a flat colour with a barely-there glow at the top. (Not SVG radial blobs:
+ * react-native-svg ignores the alpha in `rgba()` stop colours, which made them fully opaque.)
+ */
 export function Aurora() {
-  const { aurora } = useTheme();
-  const id = useId().replace(/:/g, '');
-  const [a, b, c] = aurora.blobs;
+  const { c, aurora } = useTheme();
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
-      <LinearGradient colors={[...aurora.base]} style={StyleSheet.absoluteFill} />
-      <Svg style={StyleSheet.absoluteFill} width="100%" height="100%">
-        <Defs>
-          {[
-            ['a', a],
-            ['b', b],
-            ['c', c],
-          ].map(([key, color]) => (
-            <RadialGradient key={key} id={`${id}${key}`} cx="50%" cy="50%" r="50%">
-              <Stop offset="0" stopColor={color} />
-              <Stop offset="1" stopColor={color} stopOpacity={0} />
-            </RadialGradient>
-          ))}
-        </Defs>
-        <Circle cx="12%" cy="2%" r="260" fill={`url(#${id}a)`} />
-        <Circle cx="108%" cy="30%" r="240" fill={`url(#${id}b)`} />
-        <Circle cx="35%" cy="104%" r="280" fill={`url(#${id}c)`} />
-      </Svg>
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: c.background }]} />
+      <LinearGradient
+        colors={[aurora.blobs[0], aurora.blobs[0].replace(/[\d.]+\)$/, '0)')]}
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 260 }}
+      />
     </View>
   );
 }
