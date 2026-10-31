@@ -14,6 +14,14 @@ interface Native {
   copySensitive(text: string, clearAfterMs: number): void;
   clearClipboard(): void;
   isBiometricAvailable(): boolean;
+  setAutofillIndex(json: string): Promise<void>;
+  clearAutofillData(): void;
+  takePendingSave(): string | null;
+  autofillStatus(): { autofillEnabled: boolean; credentialProviderSupported: boolean };
+  openAutofillSettings(): void;
+  openCredentialProviderSettings(): void;
+  getLaunchRequest(): Promise<string | null>;
+  finishLaunch(result: string | null): void;
   keystoreHas(alias: string): boolean;
   keystoreDelete(alias: string): void;
   keystoreCreate(alias: string, requireBiometric: boolean): void;
@@ -117,3 +125,34 @@ export async function deviceOpen(sealed: Sealed): Promise<Uint8Array> {
     await native.keystoreDecrypt(DEVICE_ALIAS, sealed.ciphertext, sealed.iv, '', ''),
   );
 }
+
+// ---------------------------------------------------------------------- autofill + passkeys
+
+/** Hands the (secret-free) suggestion index to the autofill service and credential provider. */
+export const setAutofillIndex = (json: string) => native.setAutofillIndex(json);
+export const clearAutofillData = () => native.clearAutofillData();
+
+export interface PendingSave {
+  username: string;
+  password: string;
+  host: string | null;
+  package: string | null;
+}
+/** A login the autofill save prompt captured in another app; returned once. */
+export function takePendingSave(): PendingSave | null {
+  const raw = native.takePendingSave();
+  return raw ? (JSON.parse(raw) as PendingSave) : null;
+}
+
+export const autofillStatus = () => native.autofillStatus();
+export const openAutofillSettings = () => native.openAutofillSettings();
+export const openCredentialProviderSettings = () => native.openCredentialProviderSettings();
+
+/** The request the system opened this screen for (autofill or Credential Manager), if any. */
+export async function getLaunchRequest<T>(): Promise<T | null> {
+  const raw = await native.getLaunchRequest();
+  return raw ? (JSON.parse(raw) as T) : null;
+}
+/** Answer the request, or pass null to cancel; closes the screen. */
+export const finishLaunch = (result: unknown | null) =>
+  native.finishLaunch(result === null ? null : JSON.stringify(result));

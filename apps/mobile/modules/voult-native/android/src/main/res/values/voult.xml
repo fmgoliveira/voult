@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <color name="voult_overlay_background">#F6F8FC</color>
+  <color name="voult_card">#FFFFFF</color>
+  <color name="voult_text">#0F172A</color>
+  <color name="voult_text_muted">#64748B</color>
+  <color name="voult_icon_bg">#E8F0FE</color>
+  <style name="Theme.Voult.Overlay" parent="Theme.AppCompat.DayNight.NoActionBar">
+    <item name="android:windowBackground">@color/voult_overlay_background</item>
+    <item name="android:statusBarColor">@android:color/transparent</item>
+    <item name="android:navigationBarColor">@android:color/transparent</item>
+  </style>
+  <!-- Translucent: the autofill drawer slides over the app being filled. -->
+  <style name="Theme.Voult.Drawer" parent="Theme.AppCompat.DayNight.NoActionBar">
+    <item name="android:windowIsTranslucent">true</item>
+    <item name="android:windowBackground">@android:color/transparent</item>
+    <item name="android:windowAnimationStyle">@android:style/Animation.Translucent</item>
+    <item name="android:statusBarColor">@android:color/transparent</item>
+    <item name="android:navigationBarColor">@android:color/transparent</item>
+  </style>
+</resources>

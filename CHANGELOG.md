@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### Phase 7 — Android autofill + passkey provider
+
+- Kotlin `AutofillService` (one compact "Voult" row / keyboard chip that opens a bottom drawer with the matching logins, unlock, search, and "create new login" on sign-up forms; save prompt) reading an encrypted on-device index of labels and match keys; picking a suggestion opens a Voult screen over the other app that unlocks and decrypts only that login (works on a cold start)
+- `CredentialProviderService` for Android 14+: create/use passkeys and passwords through Credential Manager; browsers via a privileged-caller allowlist, native apps verified through Digital Asset Links
+- Core: `buildAutofillIndex`, Credential Manager JSON helpers (`parseCreateRequest`/`parseGetRequest`, `registrationResponseJson`/`authenticationResponseJson`), `getAssertion` accepts a browser-supplied client-data hash, registration results carry the SPKI public key
+- Extension fix: `getPublicKey()` on a created passkey now returns the SPKI key as WebAuthn specifies (it returned the COSE key)
+- Settings → Autofill & passkeys: status and shortcuts to Android's autofill / credential-provider settings
+- Logins can be linked to an Android app (`androidapp://package`) from the "Fill with Voult" picker
+
 ### UI polish (extension + Android)
 
 - Extension autofill: the logins list opens by itself when you focus an empty login field; arrow keys highlight an entry and Enter fills it (Enter only fills after an arrow key, so it still submits normally); typing, Tab or Escape closes the list and the text goes straight into the field

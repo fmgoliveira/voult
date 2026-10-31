@@ -10,6 +10,7 @@ import {
 import { AppState } from 'react-native';
 import { create } from 'zustand';
 import * as Native from '../../modules/voult-native';
+import { clearAutofillIndex, syncAutofillIndex } from './autofill';
 import { getRuntime, hooks, type Runtime } from './runtime';
 import { DEFAULT_SETTINGS, shouldLockAfterBackground, type Settings } from './settings';
 
@@ -58,6 +59,7 @@ export const useApp = create<AppState_>((set, get) => ({
     };
     const pendingOps = (await rt.store.listOutbox()).length;
     if (!account) {
+      clearAutofillIndex();
       return set({
         phase: 'welcome',
         email: '',
@@ -83,6 +85,7 @@ export const useApp = create<AppState_>((set, get) => ({
       return set({ ...base, phase: 'recovery', pendingRecovery: rt.getPendingRecovery() });
     }
     const data = await rt.vault.loadVault();
+    void syncAutofillIndex(data.items);
     set({ ...base, phase: 'ready', vaults: data.vaults, items: data.items, pendingRecovery: null });
   },
 
@@ -196,8 +199,27 @@ export function noteClipboardClear(afterSeconds: number) {
   clipboardClearAt = afterSeconds > 0 ? Date.now() + afterSeconds * 1000 : 0;
 }
 
+let started = false;
+/** Whether the main app (not just a system-opened autofill screen) is running in this process. */
+export const isAppStarted = () => started;
+
+/**
+ * Applies the auto-lock timer. The key can outlive a long stay in the background (the timer is
+ * only checked when the app returns), so the autofill screens call this before trusting it.
+ */
+export async function enforceAutoLock(): Promise<void> {
+  const { settings } = useApp.getState();
+  if (
+    backgroundedAt !== null &&
+    shouldLockAfterBackground(Date.now() - backgroundedAt, settings.autoLockMinutes)
+  ) {
+    await (await getRuntime()).clearAccountKey();
+  }
+}
+
 /** Call once from the root layout. Returns a cleanup function. */
 export async function startApp(): Promise<() => void> {
+  started = true;
   const rt = await getRuntime();
   await useApp.getState().refresh();
   void Native.setSecureScreen(useApp.getState().settings.blockScreenshots);

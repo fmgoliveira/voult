@@ -235,7 +235,7 @@ export async function handlePasskeyCreate(
       attestationObject: b64(created.attestationObject),
       clientDataJSON: b64(created.clientDataJSON),
       authenticatorData: b64(created.authData),
-      publicKey: b64(created.publicKey),
+      publicKey: b64(created.publicKeySpki),
     },
   };
 }

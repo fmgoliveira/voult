@@ -13,6 +13,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { KeyboardAvoidingView, Pressable, ScrollView, Text, View } from 'react-native';
 import { useApp } from '../../../src/lib/app-store';
+import { takeDraftSeed } from '../../../src/lib/autofill';
 import { getRuntime } from '../../../src/lib/runtime';
 import { useAction } from '../../../src/ui/hooks';
 import { Toggle } from '../../../src/ui/controls';
@@ -103,9 +104,20 @@ export default function EditItem() {
   const params = useLocalSearchParams<{ id?: string; type?: ItemType }>();
   const { items, vaults } = useApp();
   const existing = params.id ? items.find((i) => i.id === params.id) : undefined;
-  const [draft, setDraft] = useState<Draft>(
-    () => (existing?.item ?? blankItem(params.type ?? 'login')) as Draft,
-  );
+  const [draft, setDraft] = useState<Draft>(() => {
+    if (existing) return existing.item as Draft;
+    const base = blankItem(params.type ?? 'login') as Draft;
+    const seed = base.type === 'login' ? takeDraftSeed() : null; // from the autofill save prompt
+    return seed
+      ? ({
+          ...base,
+          title: seed.title,
+          password: seed.password,
+          urls: seed.urls,
+          ...inferIdentifier(seed.username),
+        } as Draft)
+      : base;
+  });
   const [totpText, setTotpText] = useState(() => {
     const it = existing?.item;
     return (it?.type === 'login' || it?.type === 'totp' ? it.totp?.secret : '') ?? '';

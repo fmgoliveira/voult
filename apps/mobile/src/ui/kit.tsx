@@ -573,6 +573,7 @@ const SECTION_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
   Security: 'shield-checkmark-outline',
   Appearance: 'color-palette-outline',
   Devices: 'phone-portrait-outline',
+  'Autofill & passkeys': 'key-outline',
 };
 
 export function Section({ title, children }: { title: string; children: ReactNode }) {
