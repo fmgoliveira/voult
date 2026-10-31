@@ -1,7 +1,7 @@
 import { browser } from 'wxt/browser';
 
 /**
- * Shows the extension's passkey prompt on top of the page as a centred modal, instead of opening a
+ * Shows the extension's passkey prompt on top of the page as a card in the top-right corner (like the browser's own passkey dialog), instead of opening a
  * separate browser window. The prompt itself is an extension page in an iframe, so the page can
  * neither read it nor script it; only the dimmed backdrop (outside the iframe) is ours to handle.
  */
@@ -16,7 +16,7 @@ export class PromptFrame {
 
     const scrim = document.createElement('div');
     scrim.style.cssText =
-      'position:fixed;inset:0;background:rgba(2,6,18,.5);display:flex;align-items:center;justify-content:center;';
+      'position:fixed;inset:0;display:flex;align-items:flex-start;justify-content:flex-end;padding:12px;box-sizing:border-box;';
     scrim.addEventListener('click', (e) => {
       if (e.isTrusted && e.target === scrim) onDismiss();
     });
@@ -24,19 +24,25 @@ export class PromptFrame {
     const frame = document.createElement('iframe');
     frame.title = 'Voult';
     frame.src = browser.runtime.getURL(`/prompt.html?id=${id}&embed=1` as never);
+    // The wrapper owns the rounded corners and shadow and clips the iframe; a bare inline iframe
+    // leaves a baseline gap below it and shows its backdrop at the rounded edges.
+    const card = document.createElement('div');
+    card.style.cssText =
+      'width:min(380px,calc(100vw - 24px));height:min(540px,calc(100vh - 24px));overflow:hidden;' +
+      'border-radius:18px;box-shadow:0 0 0 1px rgba(128,128,128,.28),0 18px 50px rgba(0,0,0,.4);';
     frame.style.cssText =
-      'width:min(380px,calc(100vw - 24px));height:min(540px,calc(100vh - 24px));border:0;' +
-      'border-radius:18px;box-shadow:0 24px 70px rgba(0,0,0,.5);background:#fff;color-scheme:light dark;';
+      'display:block;width:100%;height:100%;border:0;margin:0;padding:0;color-scheme:light dark;';
+    card.append(frame);
 
-    scrim.append(frame);
+    scrim.append(card);
     root.append(scrim);
     document.documentElement.append(host);
     this.host = host;
     if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
       scrim.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 180, easing: 'ease-out' });
-      frame.animate(
+      card.animate(
         [
-          { opacity: 0, transform: 'translateY(14px) scale(.95)' },
+          { opacity: 0, transform: 'translate(10px,-10px) scale(.97)' },
           { opacity: 1, transform: 'none' },
         ],
         { duration: 240, easing: 'cubic-bezier(.2,.9,.3,1.1)' },

@@ -41,7 +41,12 @@ export function PromptApp() {
   if (req === undefined) return <div className="p-6 text-muted">Loading…</div>;
   if (req === null)
     return (
-      <div className="p-6 text-muted">This request has expired. You can close this window.</div>
+      <div className="space-y-3 p-6">
+        <p className="text-muted">This request has expired.</p>
+        <Button className="w-full" onClick={() => decide({ action: 'cancel' })}>
+          Close
+        </Button>
+      </div>
     );
 
   return (
