@@ -12,6 +12,7 @@ export const en = {
   'common.back': 'Back',
   'common.working': 'Working…',
   'common.language': 'Language',
+  'common.openWindow': 'Open in a window to choose a file',
   'lang.system': 'System',
 
   'nav.vault': 'Vault',
@@ -101,6 +102,7 @@ export const pt: Record<MessageKey, string> = {
   'common.back': 'Voltar',
   'common.working': 'A processar…',
   'common.language': 'Idioma',
+  'common.openWindow': 'Abrir numa janela para escolher um ficheiro',
   'lang.system': 'Sistema',
 
   'nav.vault': 'Cofre',
