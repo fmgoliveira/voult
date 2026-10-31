@@ -1,5 +1,6 @@
+import { fromBase64Url, toBase64Url } from '../crypto/bytes';
 import { parseOtpauthUri } from '../totp/otpauth';
-import { itemSchema, type Item } from '../vault/schemas';
+import { itemSchema, type Item, type Passkey } from '../vault/schemas';
 import { parseCsvRecords } from './csv';
 
 export type ImportSource = 'chrome' | 'firefox' | 'bitwarden' | 'onepassword' | 'proton';
@@ -40,6 +41,7 @@ function login(p: {
   createdAt?: number;
   updatedAt?: number;
   customFields?: { name: string; value: string; hidden?: boolean }[];
+  passkeys?: Passkey[];
 }): Item {
   const t = now();
   return itemSchema.parse({
@@ -58,6 +60,7 @@ function login(p: {
       name: f.name,
       value: f.value,
     })),
+    passkeys: p.passkeys ?? [],
     createdAt: p.createdAt ?? t,
     updatedAt: p.updatedAt ?? p.createdAt ?? t,
   });
@@ -133,6 +136,7 @@ interface BitwardenItem {
     password?: string | null;
     totp?: string | null;
     uris?: { uri?: string | null }[];
+    fido2Credentials?: BitwardenFido2[];
   };
   card?: {
     cardholderName?: string | null;
@@ -151,6 +155,78 @@ interface BitwardenItem {
     country?: string | null;
   };
   fields?: { name?: string; value?: string | null; type?: number }[];
+}
+
+interface BitwardenFido2 {
+  credentialId?: string;
+  keyType?: string;
+  keyAlgorithm?: string;
+  keyCurve?: string;
+  /** PKCS#8 private key, base64url. */
+  keyValue?: string;
+  rpId?: string;
+  rpName?: string;
+  userHandle?: string;
+  userName?: string;
+  counter?: string | number;
+  creationDate?: string;
+}
+
+/** Raw 32-byte scalar inside a P-256 PKCS#8 / SEC1 private key (`02 01 01 04 20 <32 bytes>`). */
+export function p256ScalarFromPkcs8(der: Uint8Array): Uint8Array | null {
+  for (let i = 0; i + 5 + 32 <= der.length; i++) {
+    if (
+      der[i] === 2 &&
+      der[i + 1] === 1 &&
+      der[i + 2] === 1 &&
+      der[i + 3] === 4 &&
+      der[i + 4] === 0x20
+    ) {
+      return der.slice(i + 5, i + 5 + 32);
+    }
+  }
+  return null;
+}
+
+/** Bitwarden shows GUID credential ids for passkeys it created; relying parties know the raw bytes. */
+function bitwardenCredentialId(id: string): string {
+  if (/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(id)) {
+    const hex = id.replace(/-/g, '');
+    return toBase64Url(Uint8Array.from(hex.match(/../g)!.map((h) => parseInt(h, 16))));
+  }
+  return id;
+}
+
+function bitwardenPasskeys(
+  list: BitwardenFido2[] | undefined,
+  skipped: ImportResult['skipped'],
+  title: string,
+): Passkey[] {
+  const out: Passkey[] = [];
+  for (const k of list ?? []) {
+    try {
+      if (k.keyAlgorithm && k.keyAlgorithm !== 'ECDSA') throw new Error('algorithm');
+      if (k.keyCurve && k.keyCurve !== 'P-256') throw new Error('curve');
+      const scalar = p256ScalarFromPkcs8(fromBase64Url(k.keyValue ?? ''));
+      if (!scalar || !k.credentialId || !k.rpId || !k.userHandle) throw new Error('fields');
+      out.push({
+        credentialId: bitwardenCredentialId(k.credentialId),
+        rpId: k.rpId,
+        rpName: k.rpName ?? '',
+        userHandle: k.userHandle,
+        userName: k.userName ?? '',
+        privateKey: toBase64Url(scalar),
+        signCount: Number(k.counter ?? 0) || 0,
+        createdAt: (k.creationDate && Date.parse(k.creationDate)) || now(),
+      });
+    } catch {
+      skipped.push({
+        title,
+        reason: `passkey for ${k.rpId ?? 'unknown site'} could not be converted`,
+      });
+    }
+  }
+  return out;
 }
 
 export function importBitwardenJson(text: string): ImportResult {
@@ -172,6 +248,7 @@ export function importBitwardenJson(text: string): ImportResult {
           urls: (b.login?.uris ?? []).map((u) => u.uri ?? ''),
           notes: b.notes ?? '',
           totp: b.login?.totp,
+          passkeys: bitwardenPasskeys(b.login?.fido2Credentials, skipped, title),
           favorite: b.favorite,
           customFields: (b.fields ?? []).map((f) => ({
             name: f.name ?? '',

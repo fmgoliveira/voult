@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### Phase 9 — Hardening & release
+
+- Password health (Settings, both apps): weak, reused and old passwords analysed on-device, plus an opt-in breach check against Have I Been Pwned using k-anonymity (only a 5-character hash prefix is sent)
+- Import in both apps: Chrome/Edge/Brave and Firefox CSV, 1Password CSV, Bitwarden JSON (now including passkeys) and Proton Pass JSON, with a preview and skipped-entry report
+- English / Portuguese (Settings -> Language, follows the device by default) for navigation, settings, sign-in and the new panels
+- Accessibility: colour tokens verified against WCAG 2.1 AA in CI (muted text, success/warning colours and dark-mode button labels fixed)
+- Android: Settings -> About with a manual "Check for updates" (GitHub Releases)
+- Release pipeline: tag-driven workflow builds the signed APK, Chrome/Firefox packages, an AMO-signed Firefox `.xpi` with a self-hosted `updates.json`, and a Chrome Web Store draft (`docs/RELEASE.md`)
+- Security: threat model and reviewer guide in `docs/SECURITY.md`; the high-severity zod advisory is fixed with a workspace override and CI now fails on `high`
+
 ### Phase 8 — Google Drive backup & restore
 
 - Server: connect a Google account (OAuth, `drive.file` scope), a daily job uploads a self-contained encrypted snapshot to the "Voult Backups" Drive folder and keeps the newest 30; failures are recorded (retry after an hour) and shown in the clients; the refresh token is encrypted at rest; env `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`/`PUBLIC_URL`

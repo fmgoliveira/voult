@@ -1,3 +1,4 @@
+import type { MessageKey } from '@voult/core';
 import {
   KeyRound,
   Lock,
@@ -11,19 +12,21 @@ import { Logo, Toaster, useIconPref } from '../../components/ui';
 import { useActivityAndTheme, useSettings, useStatus, useVaultData } from '../../lib/hooks';
 import { useNav, type Tab } from '../../lib/nav';
 import { lock } from '../../lib/vault';
+import { useT } from '../../lib/i18n';
 import { Reauth, RecoveryKit, Unlock, Welcome } from '../../screens/Auth';
 import { SettingsTab } from '../../screens/Settings';
 import { Authenticator, Generator } from '../../screens/Tools';
 import { VaultTab } from '../../screens/Vault';
 
-const TABS: { id: Tab; label: string; icon: LucideIcon }[] = [
-  { id: 'vault', label: 'Vault', icon: LockKeyhole },
-  { id: 'authenticator', label: 'Codes', icon: ShieldCheck },
-  { id: 'generator', label: 'Generate', icon: KeyRound },
-  { id: 'settings', label: 'Settings', icon: Cog },
+const TABS: { id: Tab; label: MessageKey; icon: LucideIcon }[] = [
+  { id: 'vault', label: 'nav.vault', icon: LockKeyhole },
+  { id: 'authenticator', label: 'nav.codes', icon: ShieldCheck },
+  { id: 'generator', label: 'nav.generate', icon: KeyRound },
+  { id: 'settings', label: 'nav.settings', icon: Cog },
 ];
 
 export function App() {
+  const t = useT();
   const status = useStatus();
   const settings = useSettings();
   const { tab, setTab, view } = useNav();
@@ -102,7 +105,14 @@ export function App() {
             <Authenticator items={data?.items ?? []} vaultId={data?.vaults[0]?.id} />
           )}
           {tab === 'generator' && <Generator />}
-          {tab === 'settings' && <SettingsTab settings={settings} status={status} />}
+          {tab === 'settings' && (
+            <SettingsTab
+              settings={settings}
+              status={status}
+              items={data?.items ?? []}
+              vaults={data?.vaults ?? []}
+            />
+          )}
         </div>
         <nav
           aria-label="Main"
@@ -120,7 +130,7 @@ export function App() {
                 }`}
               >
                 <Icon size={18} strokeWidth={active ? 2.25 : 1.9} />
-                {label}
+                {t(label)}
               </button>
             );
           })}

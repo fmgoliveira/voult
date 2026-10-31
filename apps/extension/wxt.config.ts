@@ -33,6 +33,9 @@ export default defineConfig({
     browser_specific_settings: {
       gecko: {
         id: 'voult@franciscoliveira.com',
+        // Self-hosted updates for the AMO-unlisted build: Firefox polls this JSON (the release
+        // workflow publishes it next to the signed .xpi).
+        update_url: 'https://github.com/fmgoliveira/voult/releases/latest/download/updates.json',
         data_collection_permissions: { required: ['none'] },
       },
     },

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createAccount, newKey } from '../crypto/keys';
 import { createVault, encryptItem, newId } from '../vault/ops';
-import { itemSchema, type Item } from '../vault/schemas';
+import { itemSchema, type Item, type LoginItem } from '../vault/schemas';
 import { parseCsv, parseCsvRecords, toCsv } from './csv';
 import {
   importBitwardenJson,
@@ -362,5 +362,69 @@ describe('snapshot', () => {
     };
     const csv = parseCsv(exportCsv(await openSnapshot(snap, { masterPassword: 'p' })));
     expect(csv[1]).toEqual(['E', '', 'e@x.com', '', '', '', 'V']);
+  });
+});
+
+describe('Bitwarden passkey import', () => {
+  it('converts a PKCS#8 passkey (GUID credential id) so it still signs for the relying party', async () => {
+    const { p256 } = await import('@noble/curves/nist.js');
+    const { sha256 } = await import('@noble/hashes/sha2.js');
+    const { toBase64Url, fromBase64Url } = await import('../crypto/bytes');
+    const { getAssertion } = await import('../webauthn/authenticator');
+    const { secretKey } = p256.keygen();
+    const pub = p256.getPublicKey(secretKey, false);
+    const hex = (h: string) => Uint8Array.from(h.match(/../g)!.map((x) => parseInt(x, 16)));
+    const pkcs8 = new Uint8Array([
+      ...hex('308187020100301306072a8648ce3d020106082a8648ce3d030107046d306b0201010420'),
+      ...secretKey,
+      ...hex('a144034200'),
+      ...pub,
+    ]);
+    const json = JSON.stringify({
+      encrypted: false,
+      items: [
+        {
+          type: 1,
+          name: 'Example',
+          login: {
+            username: 'alice',
+            password: 'pw',
+            uris: [{ uri: 'https://example.com' }],
+            fido2Credentials: [
+              {
+                credentialId: '01234567-89ab-cdef-0123-456789abcdef',
+                keyType: 'public-key',
+                keyAlgorithm: 'ECDSA',
+                keyCurve: 'P-256',
+                keyValue: toBase64Url(pkcs8),
+                rpId: 'example.com',
+                rpName: 'Example',
+                userHandle: 'dXNlcg',
+                userName: 'alice',
+                counter: '7',
+                creationDate: '2024-01-02T03:04:05.000Z',
+              },
+              { credentialId: 'x', keyAlgorithm: 'RSA', keyValue: 'AAAA', rpId: 'bad.example' },
+            ],
+          },
+        },
+      ],
+    });
+    const r = importFrom('bitwarden', json);
+    const item = r.vaults[0]!.items[0] as LoginItem;
+    expect(item.passkeys).toHaveLength(1);
+    const k = item.passkeys[0]!;
+    expect(k.credentialId).toBe(toBase64Url(hex('0123456789abcdef0123456789abcdef')));
+    expect(fromBase64Url(k.privateKey)).toEqual(secretKey);
+    expect(k.signCount).toBe(7);
+    expect(r.skipped).toEqual([
+      { title: 'Example', reason: 'passkey for bad.example could not be converted' },
+    ]);
+    const a = getAssertion(k, new TextEncoder().encode('{}'));
+    expect(
+      p256.verify(a.signature, new Uint8Array([...a.authData, ...sha256(a.clientDataJSON)]), pub, {
+        format: 'der',
+      }),
+    ).toBe(true);
   });
 });

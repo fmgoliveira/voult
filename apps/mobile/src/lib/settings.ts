@@ -1,9 +1,12 @@
+import type { LangSetting } from '@voult/core';
+
 export interface Settings {
   /** Minutes in the background before locking; 0 = immediately, -1 = only when the app is killed. */
   autoLockMinutes: number;
   /** 0 = never. */
   clipboardClearSeconds: number;
   theme: 'system' | 'light' | 'dark';
+  language: LangSetting;
   /** FLAG_SECURE: block screenshots, screen recording and the recents thumbnail. */
   blockScreenshots: boolean;
   /** Fetch each website's own icon for logins (no third party involved). */
@@ -14,6 +17,7 @@ export const DEFAULT_SETTINGS: Settings = {
   autoLockMinutes: 5,
   clipboardClearSeconds: 30,
   theme: 'system',
+  language: 'system',
   blockScreenshots: true,
   showIcons: true,
 };

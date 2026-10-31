@@ -6,6 +6,8 @@ import { friendlyError, useApp } from '../../../src/lib/app-store';
 import { getRuntime } from '../../../src/lib/runtime';
 import type { Settings } from '../../../src/lib/settings';
 import { BackupPanel } from '../../../src/ui/backup';
+import { useT } from '../../../src/lib/i18n';
+import { AboutPanel, HealthPanel, ImportPanel } from '../../../src/ui/tools';
 import { useAction } from '../../../src/ui/hooks';
 import { ConfirmSheet, OtpInput, Toggle } from '../../../src/ui/controls';
 import { Button, Chip, ErrorText, Field, Screen, Section } from '../../../src/ui/kit';
@@ -74,6 +76,7 @@ function Choices<T extends number | string>({
 
 function AutofillSection() {
   const { c } = useTheme();
+  const t = useT();
   const [status, setStatus] = useState(() => Native.autofillStatus());
   // Re-check when the user comes back from Android's settings.
   useEffect(() => {
@@ -83,7 +86,7 @@ function AutofillSection() {
     return () => sub.remove();
   }, []);
   return (
-    <Section title="Autofill & passkeys">
+    <Section title="Autofill & passkeys" label={t('settings.autofill')}>
       <Row label="Autofill in apps and browsers">
         <Text style={{ color: status.autofillEnabled ? c.success : c.muted, fontWeight: '700' }}>
           {status.autofillEnabled ? 'On' : 'Off'}
@@ -165,6 +168,7 @@ function ChangePassword() {
 
 export default function SettingsTab() {
   const { c } = useTheme();
+  const t = useT();
   const {
     email,
     serverUrl,
@@ -200,17 +204,17 @@ export default function SettingsTab() {
           <Text
             style={{ color: c.foreground, fontSize: 26, fontWeight: '800', letterSpacing: -0.5 }}
           >
-            Settings
+            {t('settings.title')}
           </Text>
           <Text style={{ color: c.muted, fontSize: 13 }}>Security, sync and appearance</Text>
         </View>
-        <Section title="Account">
-          <Row label="Signed in as">
+        <Section title="Account" label={t('settings.account')}>
+          <Row label={t('settings.signedInAs')}>
             <Text testID="account-email" style={{ color: c.muted }} numberOfLines={1}>
               {email}
             </Text>
           </Row>
-          <Row label="Server">
+          <Row label={t('settings.server')}>
             <Text style={{ color: c.muted, fontSize: 12 }} numberOfLines={1}>
               {serverUrl}
             </Text>
@@ -218,7 +222,7 @@ export default function SettingsTab() {
           <Row label={pendingOps ? `${pendingOps} change(s) waiting to sync` : 'Everything synced'}>
             <Button
               variant="secondary"
-              label="Sync now"
+              label={t('settings.syncNow')}
               busy={syncing}
               onPress={() => void syncNow()}
             />
@@ -230,7 +234,7 @@ export default function SettingsTab() {
           ) : null}
         </Section>
 
-        <Section title="Security">
+        <Section title="Security" label={t('settings.security')}>
           <Row label="Biometric unlock">
             <Toggle
               accessibilityLabel="Biometric unlock"
@@ -317,18 +321,36 @@ export default function SettingsTab() {
           <Button
             variant="secondary"
             icon="lock-closed"
-            label="Lock now"
+            label={t('settings.lockNow')}
             onPress={() => void lock()}
           />
         </Section>
 
         <AutofillSection />
 
-        <Section title="Backup">
+        <Section title="Password health" label={t('settings.health')}>
+          <HealthPanel />
+        </Section>
+
+        <Section title="Import" label={t('settings.import')}>
+          <ImportPanel />
+        </Section>
+
+        <Section title="Backup" label={t('settings.backup')}>
           <BackupPanel />
         </Section>
 
-        <Section title="Appearance">
+        <Section title="Appearance" label={t('settings.appearance')}>
+          <Text style={{ color: c.muted, fontSize: 13 }}>{t('common.language')}</Text>
+          <Choices
+            options={[
+              { value: 'system' as const, label: t('lang.system') },
+              { value: 'en' as const, label: 'English' },
+              { value: 'pt' as const, label: 'Português' },
+            ]}
+            value={settings.language}
+            onChange={(language) => set({ language })}
+          />
           <Choices
             options={[
               { value: 'system' as const, label: 'System' },
@@ -350,7 +372,7 @@ export default function SettingsTab() {
           </Text>
         </Section>
 
-        <Section title="Devices">
+        <Section title="Devices" label={t('settings.devices')}>
           {devices.map((d) => (
             <View
               key={d.id}
@@ -373,7 +395,7 @@ export default function SettingsTab() {
               {!d.current && (
                 <Button
                   variant="ghost"
-                  label="Revoke"
+                  label={t('settings.revoke')}
                   onPress={() =>
                     void getRuntime()
                       .then((rt) => rt.http.requestOk('DELETE', `/devices/${d.id}`))
@@ -385,8 +407,12 @@ export default function SettingsTab() {
           ))}
         </Section>
 
+        <Section title="About">
+          <AboutPanel />
+        </Section>
+
         <View style={{ paddingTop: 16 }}>
-          <Button variant="danger" label="Sign out" onPress={() => setSignOut(true)} />
+          <Button variant="danger" label={t('settings.signOut')} onPress={() => setSignOut(true)} />
           <ConfirmSheet
             visible={signOut}
             title="Sign out?"
