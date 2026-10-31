@@ -16,6 +16,7 @@ import {
   handleQuery,
   handleSubmit,
 } from '../lib/bg/autofill';
+import { clearBadgeIfLocked, setupBadge } from '../lib/bg/badge';
 import { invalidateItems } from '../lib/bg/items';
 import {
   decidePrompt,
@@ -206,6 +207,7 @@ export default defineBackground(() => {
   );
   watchPromptWindows();
   setupPopupMode();
+  setupBadge();
 
   // Context menu + keyboard shortcut: ask the right frame(s) to run the autofill flow.
   browser.runtime.onInstalled.addListener(() => {
@@ -252,6 +254,7 @@ export default defineBackground(() => {
     ) {
       await lock();
     }
+    void clearBadgeIfLocked();
     void ensureSocket();
     void runSync();
   });

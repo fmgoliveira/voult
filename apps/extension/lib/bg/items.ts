@@ -9,8 +9,15 @@ import { loadVault, type ItemView, type VaultView } from '../vault';
 let cache: { at: number; items: ItemView[]; vaults: VaultView[] } | null = null;
 const TTL_MS = 60_000;
 
+let onInvalidate: (() => void) | undefined;
+/** The toolbar badge listens here so it follows syncs, edits and locking. */
+export function setInvalidateListener(cb: () => void): void {
+  onInvalidate = cb;
+}
+
 export function invalidateItems(): void {
   cache = null;
+  onInvalidate?.();
 }
 
 export async function getVaultData(): Promise<{ items: ItemView[]; vaults: VaultView[] } | null> {
