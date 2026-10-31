@@ -34,6 +34,25 @@ It uses the same sync server and the same `@voult/core` client code as the brows
 | Auto-lock | On leaving the app after the chosen delay (or immediately). The decrypted key only ever lives in memory. |
 | Backups | `allowBackup` is off so the SQLite cache and secure-store entries are not copied to Google backups. |
 
+## Autofill and passkeys (Phase 7)
+
+**Turn it on:** Settings → *Autofill & passkeys* → *Turn on autofill* (choose Voult), and on Android 14+
+*Passkeys & password provider* (enable Voult). Chrome needs *Settings → Autofill services → Autofill
+using another service* switched on; Firefox supports the system autofill service out of the box.
+
+| Piece | How it works |
+| --- | --- |
+| Suggestions | The app keeps an **index** (title, email/username, the sites/apps each login matches — never passwords or keys) encrypted with a hardware-backed Keystore key (no user prompt). The Kotlin `AutofillService` and `CredentialProviderService` read only this, so suggestions work when the app is not running. |
+| Filling | Tapping a suggestion opens a small Voult screen over the other app. If Voult is locked it asks for biometrics / PIN / master password; then JavaScript decrypts only that login and hands back the values. Works on a cold start (the same JS bundle boots in the overlay) and instantly when the app is already unlocked. |
+| Matching | Browsers: the page's host against the login's URL rules (registrable domain / exact host / "never"; https only, http on localhost). Apps: the login must list the app (`androidapp://package`). Pick any login from "Fill with Voult" once and tick *Suggest it for this app from now on* to link it. |
+| Saving | After you submit a login form the system offers to save; Voult queues the values (encrypted) and opens the new-login form. |
+| Inline suggestions | On keyboards that support it (Android 11+), suggestions appear above the keyboard. |
+| Passkeys (Android 14+) | Credential Manager lists matching passkeys / offers "Save in Voult". Browsers (Chrome, Firefox, Brave, Edge, Samsung Internet — allowlist in `privileged_browsers.json`) supply the verified origin; native apps are accepted only if the site's `assetlinks.json` lists the app and its signing certificate. Signing happens in `@voult/core`, so passkeys created here work in the extension and vice versa. |
+| Passwords via Credential Manager | Offered to apps that list their package on a login; "Save in Voult" creates a login for the app. |
+
+Not covered yet: matching an app to a website automatically through Digital Asset Links (you link apps
+by picking a login once); autofill of cards/identities.
+
 ---
 
 # Building and testing it yourself (Windows)
@@ -167,6 +186,12 @@ Tick these off and note anything that looks wrong.
 9. **Argon2 speed** — time *Unlock* with the master password; the plan's target is **under 1 second**
    on a mid-range phone. Tell me roughly how long it takes.
 10. **Dark mode** — Settings → Appearance → Dark.
+11. **Autofill** — enable it (see *Autofill and passkeys*). In Chrome open a site you have a login for
+    and tap the username field: a "Voult" suggestion appears; tap it, unlock, and both fields fill.
+    Repeat with Voult locked, with the app killed (swipe it away), and in another app. Log in to a new
+    site by hand and accept the save prompt: Voult's new-login form opens prefilled.
+12. **Passkeys (Android 14+)** — enable Voult as a provider, then on <https://webauthn.io> register and
+    sign in in Chrome. Sign in again from the extension to confirm they are shared.
 
 ## 7. Troubleshooting
 

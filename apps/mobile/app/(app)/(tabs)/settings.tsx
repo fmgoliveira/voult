@@ -1,6 +1,7 @@
 import { WrongPasswordError } from '@voult/core';
 import { useEffect, useState } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { AppState, ScrollView, Text, View } from 'react-native';
+import * as Native from '../../../modules/voult-native';
 import { friendlyError, useApp } from '../../../src/lib/app-store';
 import { getRuntime } from '../../../src/lib/runtime';
 import type { Settings } from '../../../src/lib/settings';
@@ -67,6 +68,53 @@ function Choices<T extends number | string>({
         />
       ))}
     </View>
+  );
+}
+
+function AutofillSection() {
+  const { c } = useTheme();
+  const [status, setStatus] = useState(() => Native.autofillStatus());
+  // Re-check when the user comes back from Android's settings.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (st) => {
+      if (st === 'active') setStatus(Native.autofillStatus());
+    });
+    return () => sub.remove();
+  }, []);
+  return (
+    <Section title="Autofill & passkeys">
+      <Row label="Autofill in apps and browsers">
+        <Text style={{ color: status.autofillEnabled ? c.success : c.muted, fontWeight: '700' }}>
+          {status.autofillEnabled ? 'On' : 'Off'}
+        </Text>
+      </Row>
+      <Button
+        variant="secondary"
+        label={status.autofillEnabled ? 'Autofill settings' : 'Turn on autofill'}
+        onPress={() => Native.openAutofillSettings()}
+      />
+      <Text style={{ color: c.muted, fontSize: 12 }}>
+        Choose Voult as your autofill service. In Chrome, also turn on "Autofill using another
+        service" in its settings. Suggestions come from your vault as it was when you last unlocked
+        Voult; picking one asks you to unlock.
+      </Text>
+      {status.credentialProviderSupported ? (
+        <>
+          <Button
+            variant="secondary"
+            label="Passkeys & password provider"
+            onPress={() => Native.openCredentialProviderSettings()}
+          />
+          <Text style={{ color: c.muted, fontSize: 12 }}>
+            Turn on Voult as a provider to save and use passkeys in apps and browsers.
+          </Text>
+        </>
+      ) : (
+        <Text style={{ color: c.muted, fontSize: 12 }}>
+          Passkeys in other apps need Android 14 or newer. Passwords still autofill on this phone.
+        </Text>
+      )}
+    </Section>
   );
 }
 
@@ -272,6 +320,8 @@ export default function SettingsTab() {
             onPress={() => void lock()}
           />
         </Section>
+
+        <AutofillSection />
 
         <Section title="Appearance">
           <Choices

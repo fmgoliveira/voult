@@ -55,6 +55,11 @@ function coseKey(publicKey: Uint8Array): Uint8Array {
   );
 }
 
+/** DER header of an ES256 SubjectPublicKeyInfo; the 65-byte uncompressed point follows. */
+const SPKI_P256_PREFIX = Uint8Array.from(
+  '3059301306072a8648ce3d020106082a8648ce3d030107034200'.match(/../g)!.map((h) => parseInt(h, 16)),
+);
+
 export interface CreateParams {
   rpId: string;
   rpName?: string;
@@ -74,6 +79,8 @@ export interface CreateResult {
   authData: Uint8Array;
   /** COSE-encoded public key. */
   publicKey: Uint8Array;
+  /** SubjectPublicKeyInfo (DER) of the same key: what `getPublicKey()` returns in WebAuthn. */
+  publicKeySpki: Uint8Array;
 }
 
 export function createPasskey(p: CreateParams): CreateResult {
@@ -104,6 +111,7 @@ export function createPasskey(p: CreateParams): CreateResult {
     attestationObject,
     authData,
     publicKey: cose,
+    publicKeySpki: concat(SPKI_P256_PREFIX, pub),
     passkey: {
       credentialId: toBase64Url(credentialId),
       rpId: p.rpId,
@@ -128,11 +136,19 @@ export interface AssertionResult {
   updated: Passkey;
 }
 
-export function getAssertion(passkey: Passkey, clientDataJSON: Uint8Array): AssertionResult {
+/**
+ * Signs an assertion. Privileged callers (browsers on Android) only hand over the SHA-256 of the
+ * client data they build themselves; pass it as `clientDataHash` and the JSON is not needed.
+ */
+export function getAssertion(
+  passkey: Passkey,
+  clientDataJSON: Uint8Array,
+  clientDataHash?: Uint8Array,
+): AssertionResult {
   const signCount = passkey.signCount + 1;
   const authData = concat(rpIdHash(passkey.rpId), Uint8Array.of(BASE_FLAGS), uint32(signCount));
   const signature = p256.sign(
-    concat(authData, sha256(clientDataJSON)),
+    concat(authData, clientDataHash ?? sha256(clientDataJSON)),
     fromBase64Url(passkey.privateKey),
     { format: 'der' },
   );

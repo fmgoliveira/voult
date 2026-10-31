@@ -13,6 +13,7 @@ export * from './exchange/csv';
 export * from './exchange/importers';
 export * from './exchange/snapshot';
 export * from './webauthn/authenticator';
+export * from './webauthn/credential-json';
 export { EFF_WORDLIST } from './wordlists/eff-large';
 export * from './matching/url';
 
@@ -27,5 +28,6 @@ export * from './client/account';
 export * from './client/search';
 export * from './client/totp-input';
 export * from './client/identity';
+export * from './client/autofill-index';
 export * from './client/server-url';
 export * from './client/blank-item';

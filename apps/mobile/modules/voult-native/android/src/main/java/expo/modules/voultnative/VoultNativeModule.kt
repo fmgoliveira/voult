@@ -4,6 +4,10 @@ import android.app.Activity
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
+import android.view.autofill.AutofillManager
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
@@ -157,6 +161,51 @@ class VoultNativeModule : Module() {
         promise.reject("ERR_KEYSTORE", e.message ?: "keystore error", e)
       }
     }
+
+    // ------------------------------------------------------------------ autofill + passkeys
+
+    /** Replaces the encrypted index the autofill service and credential provider read. */
+    AsyncFunction("setAutofillIndex") { json: String ->
+      DeviceVault.write(context, DeviceVault.INDEX, json)
+    }
+
+    Function("clearAutofillData") {
+      DeviceVault.delete(context, DeviceVault.INDEX)
+      DeviceVault.delete(context, DeviceVault.PENDING_SAVE)
+    }
+
+    /** A login captured by the autofill save prompt, waiting for the user to confirm. */
+    Function("takePendingSave") { DeviceVault.takePendingSave(context) }
+
+    Function("autofillStatus") {
+      val am = context.getSystemService(AutofillManager::class.java)
+      mapOf(
+        "autofillEnabled" to (am?.hasEnabledAutofillServices() == true),
+        "credentialProviderSupported" to (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE),
+      )
+    }
+
+    Function("openAutofillSettings") {
+      val intent = Intent(Settings.ACTION_REQUEST_SET_AUTOFILL_SERVICE)
+        .setData(Uri.parse("package:" + context.packageName))
+        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+      context.startActivity(intent)
+    }
+
+    Function("openCredentialProviderSettings") {
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+        val intent = Intent(Settings.ACTION_CREDENTIAL_PROVIDER)
+          .setData(Uri.parse("package:" + context.packageName))
+          .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        context.startActivity(intent)
+      }
+    }
+
+    /** What the system activity we are showing was asked to do (null outside those activities). */
+    AsyncFunction("getLaunchRequest") { Launch.current?.launchRequest() }
+
+    /** Answers (or, with null, cancels) the request and closes the activity. */
+    Function("finishLaunch") { result: String? -> Launch.current?.complete(result) }
   }
 
   // -------------------------------------------------------------------- helpers

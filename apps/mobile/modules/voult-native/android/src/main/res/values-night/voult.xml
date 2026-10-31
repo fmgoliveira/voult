@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <color name="voult_overlay_background">#0B1020</color>
+  <color name="voult_card">#1E293B</color>
+  <color name="voult_text">#F1F5F9</color>
+  <color name="voult_text_muted">#94A3B8</color>
+  <color name="voult_icon_bg">#1E3A8A</color>
+</resources>
