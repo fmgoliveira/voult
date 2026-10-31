@@ -30,11 +30,15 @@ jobs:
           PREV=$(git tag --list 'v*.*.*' --sort=-v:refname | grep -vx "$GITHUB_REF_NAME" | head -n1 || true)
           EXT=true; AND=true
           if [ -n "$PREV" ]; then
-            # Shared code, dependencies and this workflow affect both apps.
+            # Each app is rebuilt only when something it is built from changed: its own folder or
+            # the packages it uses (the same ones for both apps). Server, docs, CI files, the
+            # lockfile and root metadata never matter, and dependency bumps change the app's own
+            # package.json anyway.
             CHANGED=$(git diff --name-only "$PREV" "$GITHUB_SHA")
-            SHARED='^(packages/|pnpm-lock\.yaml$|pnpm-workspace\.yaml$|package\.json$|scripts/|\.github/workflows/release\.yml$)'
+            SHARED='^(packages/(core|ui-tokens|config)/|pnpm-workspace\.yaml$|\.npmrc$|scripts/release-metadata\.mjs$)'
             echo "$CHANGED" | grep -qE "$SHARED|^apps/extension/" || EXT=false
             echo "$CHANGED" | grep -qE "$SHARED|^apps/mobile/" || AND=false
+            echo "changed files:"; echo "$CHANGED"
             # Never skip a part whose files the previous release does not have to reuse.
             ASSETS=$(gh release view "$PREV" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' || true)
             echo "$ASSETS" | grep -q -- '-chrome\.zip$' || EXT=true
