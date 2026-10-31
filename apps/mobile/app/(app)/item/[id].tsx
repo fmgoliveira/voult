@@ -100,6 +100,7 @@ export default function ItemDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const view = useApp((s) => s.items.find((i) => i.id === id));
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [removePasskey, setRemovePasskey] = useState<string | null>(null);
   if (!view) {
     // Deleted or purged elsewhere while this screen was open.
     return (
@@ -263,8 +264,29 @@ export default function ItemDetail() {
                 <Text style={{ color: c.muted, fontSize: 12 }}>
                   {new Date(k.createdAt).toLocaleDateString()}
                 </Text>
+                <IconButton
+                  icon="trash-outline"
+                  label={`Remove passkey for ${k.rpName || k.rpId}`}
+                  color={c.danger}
+                  onPress={() => setRemovePasskey(k.credentialId)}
+                />
               </View>
             ))}
+            <ConfirmSheet
+              visible={removePasskey !== null}
+              title="Remove this passkey?"
+              message="It is deleted from this login on all your devices. You may no longer be able to sign in to the site with it, unless you have another way in."
+              confirmLabel="Remove passkey"
+              destructive
+              onClose={() => setRemovePasskey(null)}
+              onConfirm={() =>
+                void getRuntime().then((rt) =>
+                  rt.vault.saveLoginEdit(view, {
+                    passkeys: i.passkeys.filter((k) => k.credentialId !== removePasskey),
+                  }),
+                )
+              }
+            />
           </Glass>
         )}
 

@@ -1,10 +1,11 @@
+import { WrongPasswordError } from '@voult/core';
 import { browser } from 'wxt/browser';
 import { getAccessToken, hasTokens, SignedOutError } from '../lib/api';
 import { db } from '../lib/db';
 import { getLastActivity, isUnlocked, shouldAutoLock } from '../lib/session';
 import { getSettings } from '../lib/settings';
 import { syncOnce } from '../lib/sync';
-import { lock } from '../lib/vault';
+import { hasPin, lock, unlockWithPassword, unlockWithPin } from '../lib/vault';
 import {
   handleAccept,
   handleDismiss,
@@ -25,7 +26,7 @@ import {
   watchPromptWindows,
 } from '../lib/bg/passkeys';
 import type { ContentRequest } from '../lib/autofill/messages';
-import type { PromptMessage } from '../lib/bg/prompt-types';
+import type { PromptMessage, UnlockMessage, UnlockResult } from '../lib/bg/prompt-types';
 import type { Sender } from '../lib/bg/types';
 import { setupPopupMode } from '../lib/bg/window';
 
@@ -94,10 +95,30 @@ export default defineBackground(() => {
     }
   }
 
+  /**
+   * The unlock box is an extension frame inside a web page. Firefox gives such frames no
+   * storage.session, so the secret is passed here (never to the page) and checked in the worker.
+   */
+  async function attemptUnlock(
+    msg: Extract<UnlockMessage, { type: 'unlock:pin' | 'unlock:password' }>,
+  ): Promise<UnlockResult> {
+    try {
+      if (msg.type === 'unlock:pin') return await unlockWithPin(msg.pin);
+      await unlockWithPassword(msg.password);
+      return { ok: true };
+    } catch (e) {
+      const wrong = e instanceof WrongPasswordError;
+      return { ok: false, error: wrong ? 'Wrong password.' : 'Could not unlock.' };
+    }
+  }
+
   const isExtensionPage = (sender: { url?: string }) =>
     !!sender.url?.startsWith(browser.runtime.getURL('/' as never).replace(/\/$/, ''));
 
-  async function route(msg: ContentRequest | PromptMessage, sender: Sender): Promise<unknown> {
+  async function route(
+    msg: ContentRequest | PromptMessage | UnlockMessage,
+    sender: Sender,
+  ): Promise<unknown> {
     switch (msg.type) {
       case 'autofill:query':
         return handleQuery(sender);
@@ -138,15 +159,35 @@ export default defineBackground(() => {
       case 'prompt:dismiss':
         dismissPrompt(msg.id, sender);
         return null;
+      case 'unlock:status':
+        return isExtensionPage(sender) ? { pin: await hasPin() } : null;
+      case 'unlock:close': {
+        const tabId = sender.tab?.id;
+        if (!isExtensionPage(sender) || tabId === undefined) return null;
+        await browser.tabs.sendMessage(tabId, { type: 'unlock:close' }).catch(() => undefined);
+        return null;
+      }
+      case 'unlock:pin':
+      case 'unlock:password': {
+        if (!isExtensionPage(sender)) return null;
+        const result = await attemptUnlock(msg);
+        const tabId = sender.tab?.id;
+        if (result.ok && tabId !== undefined) {
+          invalidateItems();
+          await browser.tabs.sendMessage(tabId, { type: 'unlock:done' }).catch(() => undefined);
+        }
+        return result;
+      }
     }
   }
 
-  const ROUTED = /^(autofill|capture|passkey|prompt):/;
+  const ROUTED = /^(autofill|capture|passkey|prompt|unlock):/;
   browser.runtime.onMessage.addListener(
     (msg: { type?: string; afterSeconds?: number }, sender, sendResponse) => {
       if (msg?.type && ROUTED.test(msg.type)) {
-        route(msg as ContentRequest | PromptMessage, sender).then(sendResponse, () =>
-          sendResponse(null),
+        route(msg as ContentRequest | PromptMessage | UnlockMessage, sender).then(
+          sendResponse,
+          () => sendResponse(null),
         );
         return true;
       }

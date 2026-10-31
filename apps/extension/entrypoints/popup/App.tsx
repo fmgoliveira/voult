@@ -68,8 +68,7 @@ export function App() {
       />
     );
   } else if (!status.signedIn) body = <Reauth email={status.email} />;
-  else if (!status.unlocked)
-    body = <Unlock email={status.email} pin={status.pin} pinEnabled={settings.pinEnabled} />;
+  else if (!status.unlocked) body = <Unlock email={status.email} pin={status.pin} />;
   else {
     // Detail / editor screens bring their own header and use the full height.
     const inDetail = tab === 'vault' && view.name !== 'list';

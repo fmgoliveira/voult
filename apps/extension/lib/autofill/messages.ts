@@ -41,7 +41,9 @@ export type BackgroundCommand =
   | { type: 'autofill:trigger' }
   | { type: 'autofill:generate-here' }
   | { type: 'prompt:show'; id: string }
-  | { type: 'prompt:hide' };
+  | { type: 'prompt:hide' }
+  | { type: 'unlock:done' }
+  | { type: 'unlock:close' };
 
 export interface CapturePrompt {
   action: 'save' | 'update';

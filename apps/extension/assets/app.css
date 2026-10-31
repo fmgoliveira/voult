@@ -100,6 +100,18 @@ body {
   height: 100vh;
 }
 
+/* Embedded in a web page (passkey prompt, unlock box): never show scrollbars. */
+html.embed,
+html.embed body {
+  overflow: hidden;
+}
+html.embed * {
+  scrollbar-width: none;
+}
+html.embed *::-webkit-scrollbar {
+  display: none;
+}
+
 /* ---- surfaces ---- */
 .glass {
   background: var(--surface);

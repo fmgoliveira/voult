@@ -32,6 +32,16 @@ export class PromptFrame {
     root.append(scrim);
     document.documentElement.append(host);
     this.host = host;
+    if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      scrim.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 180, easing: 'ease-out' });
+      frame.animate(
+        [
+          { opacity: 0, transform: 'translateY(14px) scale(.95)' },
+          { opacity: 1, transform: 'none' },
+        ],
+        { duration: 240, easing: 'cubic-bezier(.2,.9,.3,1.1)' },
+      );
+    }
     // Keyboard focus into the prompt once it exists (so Escape and Tab work straight away).
     frame.addEventListener('load', () => {
       frame.focus();
@@ -41,7 +51,13 @@ export class PromptFrame {
   }
 
   hide(): void {
-    this.host?.remove();
+    const host = this.host;
     this.host = null;
+    if (!host) return;
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return host.remove();
+    host
+      .animate([{ opacity: 1 }, { opacity: 0 }], { duration: 140, easing: 'ease-in' })
+      .finished.then(() => host.remove())
+      .catch(() => host.remove());
   }
 }

@@ -1,15 +1,6 @@
 import { Download, KeyRound, Lock, Mail, Server, ShieldAlert } from 'lucide-react';
 import { useState } from 'react';
-import {
-  Button,
-  Checkbox,
-  ErrorText,
-  Field,
-  Input,
-  Logo,
-  OtpInput,
-  PIN_LENGTH,
-} from '../components/ui';
+import { Button, Checkbox, ErrorText, Field, Input, Logo, OtpInput } from '../components/ui';
 import { ApiError } from '../lib/api';
 import { useAsyncAction } from '../lib/hooks';
 import { buildRecoveryKitPdf, downloadBytes } from '../lib/recovery-kit';
@@ -235,27 +226,15 @@ export function RecoveryKit({
   );
 }
 
-export function Unlock({
-  email,
-  pin,
-  pinEnabled,
-}: {
-  email: string;
-  pin: boolean;
-  pinEnabled: boolean;
-}) {
+export function Unlock({ email, pin }: { email: string; pin: boolean }) {
   const [password, setPassword] = useState('');
-  const [newPin, setNewPin] = useState('');
   const [pinCode, setPinCode] = useState('');
   const [usePin, setUsePin] = useState(pin);
   const { busy, error, run, setError } = useAsyncAction();
 
   const submitPassword = (e: React.FormEvent) => {
     e.preventDefault();
-    void run(
-      () => unlockWithPassword(password, newPin.length === PIN_LENGTH ? newPin : undefined),
-      friendly,
-    );
+    void run(() => unlockWithPassword(password), friendly);
   };
   const submitPin = (code: string) => {
     void run(async () => {
@@ -314,17 +293,6 @@ export function Unlock({
               />
             )}
           </Field>
-          {pinEnabled && (
-            <div className="space-y-2">
-              <p className="text-xs font-semibold tracking-wide text-muted">
-                Quick-unlock PIN (optional, 6 digits)
-              </p>
-              <OtpInput label="New PIN" value={newPin} onChange={setNewPin} />
-              <p className="text-center text-xs text-muted">
-                Kept in memory only; cleared when the browser closes.
-              </p>
-            </div>
-          )}
           <ErrorText>{error}</ErrorText>
           <Button type="submit" className="w-full" disabled={busy || !password}>
             {busy ? 'Unlocking…' : 'Unlock'}

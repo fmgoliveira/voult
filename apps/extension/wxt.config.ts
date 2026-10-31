@@ -25,7 +25,7 @@ export default defineConfig({
     // The passkey prompt is shown over the page in an iframe, so pages must be able to embed it.
     web_accessible_resources: [
       {
-        resources: ['prompt.html', 'chunks/*', 'assets/*'],
+        resources: ['prompt.html', 'unlock.html', 'chunks/*', 'assets/*'],
         matches: ['https://*/*', 'http://localhost/*', 'http://127.0.0.1/*'],
       },
     ],

@@ -250,8 +250,9 @@ export function SettingsTab({ settings, status }: { settings: Settings; status: 
           </div>
         )}
         <p className="text-xs text-muted">
-          The PIN lives in memory only and is wiped after 5 wrong attempts or when the browser
-          closes.
+          The PIN stays on this device (encrypted) so it works after restarting the browser. It is
+          wiped after 5 wrong attempts or when you sign out. Your master password is stronger: use
+          it if others can access this computer's files.
         </p>
         <ChangePassword />
         <Button variant="secondary" className="w-full" onClick={() => void lock()}>

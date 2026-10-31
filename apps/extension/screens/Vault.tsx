@@ -40,6 +40,7 @@ import {
   purgeItem,
   restoreItem,
   saveItem,
+  saveLoginEdit,
   trashItem,
   type ItemView,
   type VaultView,
@@ -338,6 +339,7 @@ function Detail({ v }: { v: ItemView }) {
   const i = v.item;
   const trashed = v.deletedAt !== null;
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [removing, setRemoving] = useState<string | null>(null);
 
   return (
     <div className="fade-in flex min-h-0 flex-1 flex-col">
@@ -463,9 +465,42 @@ function Detail({ v }: { v: ItemView }) {
                       {k.rpName || k.rpId}
                       {k.userName ? ` · ${k.userName}` : ''}
                     </span>
-                    <span className="text-xs text-muted">
-                      {new Date(k.createdAt).toLocaleDateString()}
-                    </span>
+                    {removing === k.credentialId ? (
+                      <span className="flex items-center gap-1">
+                        <Button
+                          variant="danger"
+                          className="h-7 px-2.5 text-xs"
+                          onClick={() => {
+                            setRemoving(null);
+                            void saveLoginEdit(v, {
+                              passkeys: i.passkeys.filter((p) => p.credentialId !== k.credentialId),
+                            });
+                          }}
+                        >
+                          Remove
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          className="h-7 px-2 text-xs"
+                          onClick={() => setRemoving(null)}
+                        >
+                          Keep
+                        </Button>
+                      </span>
+                    ) : (
+                      <>
+                        <span className="text-xs text-muted">
+                          {new Date(k.createdAt).toLocaleDateString()}
+                        </span>
+                        <IconButton
+                          label={`Remove passkey for ${k.rpName || k.rpId}`}
+                          className="size-7 text-danger"
+                          onClick={() => setRemoving(k.credentialId)}
+                        >
+                          <Trash2 size={14} />
+                        </IconButton>
+                      </>
+                    )}
                   </li>
                 ))}
               </ul>
