@@ -10,7 +10,7 @@ import {
 import { Lock, Mail, Server } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { browser } from 'wxt/browser';
-import { Button, ErrorText, Field, Input, Switch, useToast } from '../components/ui';
+import { Button, ErrorText, Field, FileInput, Input, Switch, useToast } from '../components/ui';
 import { useAsyncAction } from '../lib/hooks';
 import { downloadBytes } from '../lib/recovery-kit';
 import { DEFAULT_SERVER_URL } from '../lib/settings';
@@ -203,13 +203,7 @@ export function RestoreWizard({ onBack }: { onBack: () => void }) {
     <div className="space-y-3">
       <Field label="Backup file (.voult)">
         {(id) => (
-          <input
-            id={id}
-            type="file"
-            accept=".voult,.json,application/json"
-            onChange={(e) => void pick(e.target.files?.[0])}
-            className="w-full text-xs"
-          />
+          <FileInput id={id} accept=".voult,.json,application/json" onFile={(f) => void pick(f)} />
         )}
       </Field>
       <p className="text-xs text-muted">

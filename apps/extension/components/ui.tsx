@@ -1,5 +1,7 @@
 import { avatarGradient, typeColors } from '@voult/ui-tokens';
 import { faviconUrl, type ItemType } from '@voult/core';
+import { useT } from '../lib/i18n';
+import { inToolbarPopup, openInWindow } from '../lib/window';
 import clsx, { type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import {
@@ -653,5 +655,36 @@ export function OtpInput({
         className="absolute inset-0 h-full w-full cursor-text opacity-0 focus-visible:outline-0"
       />
     </div>
+  );
+}
+
+/**
+ * File input that works from the toolbar popup: browsers close the popup when the file dialog
+ * opens, so there it offers to reopen the same UI in a window first.
+ */
+export function FileInput({
+  id,
+  accept,
+  onFile,
+}: {
+  id?: string;
+  accept: string;
+  onFile: (f: File | undefined) => void;
+}) {
+  const t = useT();
+  if (inToolbarPopup())
+    return (
+      <Button variant="secondary" className="w-full" onClick={() => void openInWindow()}>
+        {t('common.openWindow')}
+      </Button>
+    );
+  return (
+    <input
+      id={id}
+      type="file"
+      accept={accept}
+      onChange={(e) => onFile(e.target.files?.[0])}
+      className="w-full text-xs"
+    />
   );
 }

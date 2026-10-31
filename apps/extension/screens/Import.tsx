@@ -1,6 +1,6 @@
 import { importFrom, type ImportResult, type ImportSource, type VaultView } from '@voult/core';
 import { useState } from 'react';
-import { Button, ErrorText, Field, Select, useToast } from '../components/ui';
+import { Button, ErrorText, Field, FileInput, Select, useToast } from '../components/ui';
 import { useAsyncAction } from '../lib/hooks';
 import { useT } from '../lib/i18n';
 import { saveItem } from '../lib/vault';
@@ -76,16 +76,7 @@ export function ImportPanel({ vaults }: { vaults: VaultView[] }) {
         )}
       </Field>
       <Field label={t('import.chooseFile')}>
-        {(id) => (
-          <input
-            id={id}
-            key={source}
-            type="file"
-            accept={meta.accept}
-            onChange={(e) => pick(e.target.files?.[0])}
-            className="w-full text-xs"
-          />
-        )}
+        {(id) => <FileInput id={id} key={source} accept={meta.accept} onFile={pick} />}
       </Field>
       <ErrorText>{error}</ErrorText>
       {result && (
