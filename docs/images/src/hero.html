@@ -1,0 +1,53 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      * { box-sizing: border-box; margin: 0; }
+      body {
+        width: 1920px; height: 1080px; overflow: hidden; position: relative;
+        font-family: 'Inter', 'Segoe UI', system-ui, sans-serif; color: #fff;
+        background:
+          radial-gradient(900px 700px at 78% 30%, rgba(59, 123, 245, 0.45), transparent 70%),
+          radial-gradient(700px 600px at 5% 100%, rgba(37, 99, 235, 0.3), transparent 70%),
+          linear-gradient(135deg, #070d1c 0%, #0d1a3a 100%);
+      }
+      .grid { position: absolute; inset: 0; opacity: .07;
+        background-image: linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px);
+        background-size: 64px 64px; mask-image: radial-gradient(circle at 70% 40%, #000, transparent 70%); }
+      .left { position: absolute; left: 120px; top: 150px; width: 820px; }
+      .brand { display: flex; align-items: center; gap: 32px; }
+      .brand img { width: 132px; height: 132px; border-radius: 34px; box-shadow: 0 20px 60px rgba(37, 99, 235, .55); }
+      h1 { font-size: 150px; font-weight: 800; letter-spacing: -5px; line-height: 1; }
+      .tag { margin-top: 56px; font-size: 54px; font-weight: 700; line-height: 1.18; letter-spacing: -1px; }
+      .tag span { color: #6ea3ff; }
+      ul { margin-top: 44px; list-style: none; padding: 0; display: grid; gap: 18px; font-size: 30px; color: #c3d2f5; }
+      li::before { content: ''; display: inline-block; width: 14px; height: 14px; border-radius: 50%; background: #3b7bf5; margin-right: 20px; box-shadow: 0 0 14px #3b7bf5; }
+      .chips { position: absolute; left: 120px; bottom: 100px; display: flex; gap: 16px; }
+      .chip { padding: 12px 26px; border-radius: 99px; font-size: 26px; font-weight: 600; border: 1.5px solid rgba(255,255,255,.22); background: rgba(255,255,255,.07); }
+      .shot { position: absolute; border-radius: 34px; overflow: hidden; box-shadow: 0 40px 100px rgba(0,0,0,.55), 0 0 0 2px rgba(255,255,255,.14); }
+      .shot img { display: block; width: 100%; }
+      .s1 { left: 950px; top: 250px; width: 400px; transform: rotate(-6deg); }
+      .s3 { left: 1440px; top: 290px; width: 400px; transform: rotate(6deg); }
+      .s2 { left: 1170px; top: 130px; width: 470px; z-index: 2; }
+    </style>
+  </head>
+  <body>
+    <div class="grid"></div>
+    <div class="left">
+      <div class="brand"><img src="icon.png" /><h1>Voult</h1></div>
+      <p class="tag">Your passwords, <span>on your server</span>. Zero-knowledge by design.</p>
+      <ul>
+        <li>End-to-end encrypted: the server never sees your data</li>
+        <li>Passkeys and a built-in 2FA code generator</li>
+        <li>Autofill in the browser and on Android</li>
+      </ul>
+    </div>
+    <div class="chips">
+      <div class="chip">Chrome</div><div class="chip">Firefox</div><div class="chip">Android</div><div class="chip">Self-hosted</div><div class="chip">Open source</div>
+    </div>
+    <div class="shot s1"><img src="../vault-dark.png" /></div>
+    <div class="shot s3"><img src="../generator.png" /></div>
+    <div class="shot s2"><img src="../item-detail.png" /></div>
+  </body>
+</html>

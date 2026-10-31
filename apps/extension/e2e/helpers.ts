@@ -57,6 +57,8 @@ export class Env {
     const ctx = await chromium.launchPersistentContext(path.join(this.tmp, name), {
       channel: 'chromium',
       headless: true,
+      // Sharper screenshots for the docs (SHOTS=1); tests keep the default.
+      deviceScaleFactor: process.env.SHOTS ? 2 : 1,
       args: [`--disable-extensions-except=${EXT}`, `--load-extension=${EXT}`],
     });
     this.contexts.push(ctx);
