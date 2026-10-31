@@ -171,15 +171,10 @@ export function Select({
       const t = e.target as Node;
       if (!btn.current?.contains(t) && !list.current?.contains(t)) setOpen(false);
     };
-    const close = () => setOpen(false);
+    // Only an outside press closes it: browser popups fire spurious blur/resize events while
+    // they open, which used to shut the list the moment it appeared.
     document.addEventListener('pointerdown', away, true);
-    window.addEventListener('blur', close);
-    window.addEventListener('resize', close);
-    return () => {
-      document.removeEventListener('pointerdown', away, true);
-      window.removeEventListener('blur', close);
-      window.removeEventListener('resize', close);
-    };
+    return () => document.removeEventListener('pointerdown', away, true);
   }, [open]);
 
   const pick = (i: number) => {
