@@ -14,6 +14,7 @@ import {
   Field,
   IconButton,
   Input,
+  Checkbox,
   ItemAvatar,
   Pills,
   SearchInput,
@@ -26,8 +27,27 @@ import { saveItem } from '../lib/vault';
 import { useAsyncAction } from '../lib/hooks';
 import type { ItemView } from '../lib/vault';
 
-const toggleCls =
-  'glass flex cursor-pointer items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium has-[:checked]:border-primary/50 has-[:checked]:bg-primary/10';
+function Toggle({
+  checked,
+  onChange,
+  children,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <Checkbox
+      checked={checked}
+      onChange={onChange}
+      className={`glass w-full items-center rounded-xl px-3 py-2 text-sm font-medium transition-colors ${
+        checked ? 'border-primary/50 bg-primary/10' : ''
+      }`}
+    >
+      {children}
+    </Checkbox>
+  );
+}
 
 /** Colour digits and symbols so a generated password is easy to read aloud and verify. */
 function Colored({ value }: { value: string }) {
@@ -78,15 +98,9 @@ export function Generator() {
     label: string,
     key: 'upper' | 'lower' | 'digits' | 'symbols' | 'excludeAmbiguous',
   ) => (
-    <label className={toggleCls}>
-      <input
-        type="checkbox"
-        className="size-4 accent-[var(--primary)]"
-        checked={random[key]}
-        onChange={(e) => setRandom({ ...random, [key]: e.target.checked })}
-      />
+    <Toggle checked={random[key]} onChange={(v) => setRandom({ ...random, [key]: v })}>
       {label}
-    </label>
+    </Toggle>
   );
 
   return (
@@ -162,24 +176,18 @@ export function Generator() {
               />
             )}
           </Field>
-          <label className={toggleCls}>
-            <input
-              type="checkbox"
-              className="size-4 accent-[var(--primary)]"
-              checked={phrase.capitalize}
-              onChange={(e) => setPhrase({ ...phrase, capitalize: e.target.checked })}
-            />
+          <Toggle
+            checked={phrase.capitalize}
+            onChange={(v) => setPhrase({ ...phrase, capitalize: v })}
+          >
             Capitalise
-          </label>
-          <label className={toggleCls}>
-            <input
-              type="checkbox"
-              className="size-4 accent-[var(--primary)]"
-              checked={phrase.appendDigit}
-              onChange={(e) => setPhrase({ ...phrase, appendDigit: e.target.checked })}
-            />
+          </Toggle>
+          <Toggle
+            checked={phrase.appendDigit}
+            onChange={(v) => setPhrase({ ...phrase, appendDigit: v })}
+          >
             Append a digit
-          </label>
+          </Toggle>
         </div>
       )}
     </div>
@@ -321,7 +329,12 @@ export function Authenticator({ items, vaultId }: { items: ItemView[]; vaultId?:
                   open({ name: 'detail', id: v.id });
                 }}
               >
-                <ItemAvatar type={v.item.type} title={v.item.title} size={22} />
+                <ItemAvatar
+                  type={v.item.type}
+                  title={v.item.title}
+                  size={22}
+                  urls={v.item.type === 'login' ? v.item.urls : undefined}
+                />
                 <span className="truncate">
                   {v.item.title}
                   {totp.account ? ` · ${totp.account}` : ''}

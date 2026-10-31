@@ -61,7 +61,11 @@ export function ItemRow({ v, onPress }: { v: ItemView; onPress: () => void }) {
           android_ripple={{ color: c.border }}
           style={{ flex: 1, flexDirection: 'row', gap: 12, alignItems: 'center', padding: 12 }}
         >
-          <ItemAvatar type={i.type} title={i.title} />
+          <ItemAvatar
+            type={i.type}
+            title={i.title}
+            urls={i.type === 'login' ? i.urls : undefined}
+          />
           <View style={{ flex: 1 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               <Text
@@ -118,8 +122,8 @@ function Ring({ remaining, progress, low }: { remaining: number; progress: numbe
   const [a, b] = low
     ? ['#fb7185', '#e11d48']
     : dark
-      ? ['#7c74ff', '#c084fc']
-      : ['#6d5bf7', '#a35cf6'];
+      ? ['#5b95ff', '#38bdf8']
+      : ['#2563eb', '#0ea5e9'];
   return (
     <Svg
       width={46}

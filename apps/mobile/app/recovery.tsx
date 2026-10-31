@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { ScrollView, Share, Switch, Text, View } from 'react-native';
+import { ScrollView, Share, Text, View } from 'react-native';
 import { useApp } from '../src/lib/app-store';
 import { getRuntime } from '../src/lib/runtime';
 import { useAction } from '../src/ui/hooks';
+import { CheckRow } from '../src/ui/controls';
 import { Button, ErrorText, Screen, AuthHero, Body, Glass } from '../src/ui/kit';
 import { useTheme } from '../src/ui/theme';
 
@@ -67,16 +68,11 @@ export default function Recovery() {
               still continue with your master password.
             </Body>
           )}
-          <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
-            <Switch
-              value={saved}
-              onValueChange={setSaved}
-              accessibilityLabel="I stored my recovery kit"
-            />
-            <Text style={{ flex: 1, color: c.foreground }}>
+          <CheckRow value={saved} onValueChange={setSaved} testID="stored">
+            <Text style={{ color: c.foreground, lineHeight: 21 }}>
               I stored my recovery kit somewhere safe. I understand Voult cannot reset my password.
             </Text>
-          </View>
+          </CheckRow>
           <Button
             testID="continue"
             label="Continue"

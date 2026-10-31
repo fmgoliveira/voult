@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState, type ReactNode } from 'react';
-import { Alert, Linking, ScrollView, Text, View } from 'react-native';
+import { Linking, Pressable, ScrollView, Text, View } from 'react-native';
 import { useApp } from '../../../src/lib/app-store';
 import { copySecret } from '../../../src/lib/clipboard';
 import { getRuntime } from '../../../src/lib/runtime';
@@ -14,6 +14,7 @@ import {
   ItemAvatar,
   Screen,
 } from '../../../src/ui/kit';
+import { ConfirmSheet } from '../../../src/ui/controls';
 import { TYPE_LABEL, TotpCode } from '../../../src/ui/items';
 import { useTheme } from '../../../src/ui/theme';
 
@@ -51,16 +52,29 @@ function Line({
           {label}
         </Text>
         {children ?? (
-          <Text
-            testID={`field-${label.toLowerCase()}`}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Copy ${label}`}
+            onPress={() => copySecret(value, `${label} copied`)}
+            android_ripple={{ color: c.border }}
             style={{
-              color: c.foreground,
-              fontSize: 16,
-              fontFamily: mono || secret ? 'monospace' : undefined,
+              marginHorizontal: -6,
+              paddingHorizontal: 6,
+              paddingVertical: 2,
+              borderRadius: 8,
             }}
           >
-            {secret && !shown ? '••••••••••••' : value}
-          </Text>
+            <Text
+              testID={`field-${label.toLowerCase()}`}
+              style={{
+                color: c.foreground,
+                fontSize: 16,
+                fontFamily: mono || secret ? 'monospace' : undefined,
+              }}
+            >
+              {secret && !shown ? '••••••••••••' : value}
+            </Text>
+          </Pressable>
         )}
       </View>
       {secret ? (
@@ -85,6 +99,7 @@ export default function ItemDetail() {
   const { c } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const view = useApp((s) => s.items.find((i) => i.id === id));
+  const [confirmDelete, setConfirmDelete] = useState(false);
   if (!view) {
     // Deleted or purged elsewhere while this screen was open.
     return (
@@ -127,7 +142,12 @@ export default function ItemDetail() {
 
       <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24, gap: 12 }}>
         <View style={{ alignItems: 'center', gap: 6, paddingBottom: 4 }}>
-          <ItemAvatar type={i.type} title={i.title} size={72} />
+          <ItemAvatar
+            type={i.type}
+            title={i.title}
+            size={72}
+            urls={i.type === 'login' ? i.urls : undefined}
+          />
           <Text
             testID="detail-title"
             numberOfLines={2}
@@ -290,16 +310,16 @@ export default function ItemDetail() {
               <Button
                 variant="danger"
                 label="Delete forever"
-                onPress={() =>
-                  Alert.alert('Delete forever?', 'This cannot be undone.', [
-                    { text: 'Cancel', style: 'cancel' },
-                    {
-                      text: 'Delete',
-                      style: 'destructive',
-                      onPress: () => void act((rt) => rt.vault.purgeItem(view))(),
-                    },
-                  ])
-                }
+                onPress={() => setConfirmDelete(true)}
+              />
+              <ConfirmSheet
+                visible={confirmDelete}
+                title="Delete forever?"
+                message="This cannot be undone."
+                confirmLabel="Delete"
+                destructive
+                onClose={() => setConfirmDelete(false)}
+                onConfirm={() => void act((rt) => rt.vault.purgeItem(view))()}
               />
             </View>
           </>

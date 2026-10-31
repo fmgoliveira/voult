@@ -1,10 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { avatarGradient, typeColors } from '@voult/ui-tokens';
-import type { ItemType } from '@voult/core';
+import { faviconUrl, type ItemType } from '@voult/core';
 import { LinearGradient } from 'expo-linear-gradient';
 import { forwardRef, useId, useState, type ReactNode } from 'react';
 import {
   ActivityIndicator,
+  Image,
   Pressable,
   StyleSheet,
   Text,
@@ -24,6 +25,7 @@ import Svg, {
   Rect,
   Stop,
 } from 'react-native-svg';
+import { useApp } from '../lib/app-store';
 import { useTheme } from './theme';
 
 // ------------------------------------------------------------------ background
@@ -71,7 +73,7 @@ export function Screen({ children, style }: { children: ReactNode; style?: Style
 
 // ------------------------------------------------------------------ glass
 
-/** Translucent card with a hairline border and a soft top highlight. */
+/** Clean card: solid surface with a hairline border. No shadows (Android draws them as boxes). */
 export function Glass({
   children,
   style,
@@ -83,7 +85,7 @@ export function Glass({
   strong?: boolean;
   radius?: number;
 }) {
-  const { c, dark } = useTheme();
+  const { c } = useTheme();
   return (
     <View
       style={[
@@ -93,24 +95,10 @@ export function Glass({
           borderColor: strong ? c.borderStrong : c.border,
           backgroundColor: strong ? c.surfaceStrong : c.surface,
           overflow: 'hidden',
-          shadowColor: dark ? '#000' : '#4632aa',
-          shadowOpacity: dark ? 0.5 : 0.2,
-          shadowRadius: 16,
-          shadowOffset: { width: 0, height: 8 },
-          elevation: 3,
         },
         style,
       ]}
     >
-      <LinearGradient
-        pointerEvents="none"
-        colors={
-          dark
-            ? ['rgba(255,255,255,0.08)', 'rgba(255,255,255,0)']
-            : ['rgba(255,255,255,0.7)', 'rgba(255,255,255,0)']
-        }
-        style={[StyleSheet.absoluteFill, { height: 56 }]}
-      />
       {children}
     </View>
   );
@@ -124,8 +112,8 @@ export function Logo({ size = 32 }: { size?: number }) {
     <Svg width={size} height={size} viewBox="0 0 40 40">
       <Defs>
         <SvgLinear id={id} x1="0" y1="0" x2="1" y2="1">
-          <Stop offset="0" stopColor="#6d5bf7" />
-          <Stop offset="1" stopColor="#b06cf7" />
+          <Stop offset="0" stopColor="#4f93ff" />
+          <Stop offset="1" stopColor="#1d4ed8" />
         </SvgLinear>
       </Defs>
       <Rect width="40" height="40" rx="12" fill={`url(#${id})`} />
@@ -176,16 +164,27 @@ export function TypeTile({ type, size = 44 }: { type: ItemType; size?: number })
   );
 }
 
-/** Letter avatar for logins (stable colour per title); icon tile for everything else. */
+const brokenIcons = new Set<string>();
+
+/**
+ * Logins show the website's own icon (fetched straight from that site, never through a third
+ * party) and fall back to a coloured letter. Other types get an icon tile.
+ */
 export function ItemAvatar({
   type,
   title,
   size = 44,
+  urls,
 }: {
   type: ItemType;
   title: string;
   size?: number;
+  urls?: readonly { url: string }[];
 }) {
+  const iconsOn = useApp((st) => st.settings.showIcons);
+  const src = iconsOn && urls ? faviconUrl(urls) : null;
+  const [ok, setOk] = useState(false);
+  const [failed, setFailed] = useState(() => (src ? brokenIcons.has(src) : false));
   if (type !== 'login' || !title.trim()) return <TypeTile type={type} size={size} />;
   const [from, to] = avatarGradient(title.toLowerCase());
   return (
@@ -199,11 +198,38 @@ export function ItemAvatar({
         borderRadius: size * 0.3,
         alignItems: 'center',
         justifyContent: 'center',
+        overflow: 'hidden',
       }}
     >
       <Text style={{ color: '#fff', fontWeight: '800', fontSize: size * 0.42 }}>
         {title.trim()[0]!.toUpperCase()}
       </Text>
+      {src && !failed ? (
+        <View
+          style={[
+            StyleSheet.absoluteFill,
+            { backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
+            { opacity: ok ? 1 : 0 },
+          ]}
+        >
+          <Image
+            source={{ uri: src }}
+            style={{ width: size * 0.62, height: size * 0.62 }}
+            resizeMode="contain"
+            onLoad={(e) => {
+              if (e.nativeEvent.source.width > 1) setOk(true);
+              else {
+                brokenIcons.add(src);
+                setFailed(true);
+              }
+            }}
+            onError={() => {
+              brokenIcons.add(src);
+              setFailed(true);
+            }}
+          />
+        </View>
+      ) : null}
     </LinearGradient>
   );
 }
@@ -293,11 +319,6 @@ export function Button({
         opacity: off ? 0.5 : 1,
         transform: [{ scale: pressed ? 0.97 : 1 }],
         borderRadius: 14,
-        shadowColor: variant === 'primary' ? brand[0] : '#000',
-        shadowOpacity: gradient ? 0.45 : 0,
-        shadowRadius: 12,
-        shadowOffset: { width: 0, height: 6 },
-        elevation: gradient ? 4 : 0,
       })}
     >
       {gradient ? (
@@ -641,18 +662,6 @@ export function AuthHero({ title, subtitle }: { title: string; subtitle?: string
   return (
     <View style={{ alignItems: 'center', gap: 8, paddingTop: 24, paddingBottom: 8 }}>
       <View>
-        <View
-          style={{
-            position: 'absolute',
-            top: -10,
-            left: -10,
-            right: -10,
-            bottom: -10,
-            borderRadius: 40,
-            backgroundColor: c.primary,
-            opacity: 0.25,
-          }}
-        />
         <Logo size={64} />
       </View>
       <Text

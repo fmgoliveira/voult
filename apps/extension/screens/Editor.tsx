@@ -1,14 +1,26 @@
 import {
   blankItem,
   generatePassword,
+  identifierOf,
+  identifierSuggestions,
+  inferIdentifier,
   itemSchema,
   type Item,
   type ItemType,
   type LoginItem,
 } from '@voult/core';
-import { Eye, EyeOff, Plus, Trash2, Wand2 } from 'lucide-react';
-import { useState } from 'react';
-import { Button, ErrorText, Field, IconButton, Input, Select, TypeTile } from '../components/ui';
+import { Eye, EyeOff, Mail, Plus, Trash2, User, Wand2 } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import {
+  Button,
+  Checkbox,
+  ErrorText,
+  Field,
+  IconButton,
+  Input,
+  Select,
+  TypeTile,
+} from '../components/ui';
 import { useAsyncAction } from '../lib/hooks';
 import { useNav } from '../lib/nav';
 import { parseTotpInput } from '@voult/core';
@@ -88,14 +100,80 @@ function Text({
   );
 }
 
+/** One input for "email or username": we work out which it is, and offer ones already in use. */
+function IdentifierField({
+  login,
+  items,
+  onChange,
+}: {
+  login: { username: string; email: string };
+  items: ItemView[];
+  onChange: (v: { username: string; email: string }) => void;
+}) {
+  const [focused, setFocused] = useState(false);
+  const value = identifierOf(login);
+  const suggestions = useMemo(
+    () =>
+      identifierSuggestions(
+        items.map((i) => i.item),
+        value,
+      ),
+    [items, value],
+  );
+  const isEmail = !!inferIdentifier(value).email;
+  return (
+    <Field label="Email or username">
+      {(id) => (
+        <div className="space-y-1.5">
+          <Input
+            id={id}
+            value={value}
+            autoComplete="off"
+            autoCapitalize="none"
+            spellCheck={false}
+            leading={isEmail ? <Mail size={15} /> : <User size={15} />}
+            onFocus={() => setFocused(true)}
+            onBlur={() => setTimeout(() => setFocused(false), 120)}
+            onChange={(e) => onChange(inferIdentifier(e.target.value))}
+          />
+          {focused && suggestions.length > 0 && (
+            <ul
+              aria-label="Previously used"
+              className="fade-in overflow-hidden rounded-xl border border-border bg-surface-solid"
+            >
+              {suggestions.map((s) => (
+                <li key={s.value}>
+                  <button
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => onChange(inferIdentifier(s.value))}
+                    className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm hover:bg-primary/8"
+                  >
+                    <span className="truncate">{s.value}</span>
+                    <span className="shrink-0 text-[11px] text-muted">
+                      {s.count} {s.count === 1 ? 'account' : 'accounts'}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+    </Field>
+  );
+}
+
 export function Editor({
   type,
   existing,
   vaults,
+  items,
 }: {
   type: ItemType;
   existing?: ItemView;
   vaults: VaultView[];
+  items: ItemView[];
 }) {
   const { back, open } = useNav();
   const [draft, setDraft] = useState<Item>(() => existing?.item ?? blankItem(type));
@@ -178,12 +256,10 @@ export function Editor({
 
         {draft.type === 'login' && (
           <>
-            <Text label="Username" value={d.username} onChange={(v) => patch({ username: v })} />
-            <Text
-              label="Email"
-              type="email"
-              value={d.email}
-              onChange={(v) => patch({ email: v })}
+            <IdentifierField
+              login={{ username: d.username, email: d.email }}
+              items={items}
+              onChange={(v) => patch(v)}
             />
             <PasswordField value={d.password} onChange={(v) => patch({ password: v })} />
             <div className="space-y-1">
@@ -358,7 +434,7 @@ export function Editor({
               rows={4}
               value={draft.notes}
               onChange={(e) => patch({ notes: e.target.value })}
-              className="w-full rounded-xl border border-border bg-surface p-3 text-sm backdrop-blur-md transition-colors hover:border-border-strong focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:outline-0"
+              className="w-full rounded-xl border border-border bg-surface p-3 text-sm transition-colors hover:border-border-strong focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:outline-0"
             />
           )}
         </Field>
@@ -381,15 +457,13 @@ export function Editor({
             )}
           </Field>
         )}
-        <label className="flex items-center gap-2.5 text-sm font-medium">
-          <input
-            type="checkbox"
-            className="size-4 accent-[var(--primary)]"
-            checked={draft.favorite}
-            onChange={(e) => patch({ favorite: e.target.checked })}
-          />{' '}
+        <Checkbox
+          checked={draft.favorite}
+          onChange={(v) => patch({ favorite: v })}
+          className="text-sm font-medium"
+        >
           Favourite
-        </label>
+        </Checkbox>
         <ErrorText>{error}</ErrorText>
       </div>
     </form>

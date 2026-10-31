@@ -36,7 +36,11 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <StatusBar style={dark ? 'light' : 'dark'} />
       <Stack
-        screenOptions={{ headerShown: false, contentStyle: { backgroundColor: c.background } }}
+        screenOptions={{
+          headerShown: false,
+          animation: 'fade',
+          contentStyle: { backgroundColor: c.background },
+        }}
       >
         <Stack.Protected guard={phase === 'welcome'}>
           <Stack.Screen name="welcome" />

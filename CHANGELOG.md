@@ -2,11 +2,18 @@
 
 ## Unreleased
 
-### UI redesign (extension + Android)
+### UI polish (extension + Android)
 
-- New "soft glass" design system in `@voult/ui-tokens`: aurora background, translucent surfaces with hairline borders and real `backdrop-filter` blur on the web, indigo→violet brand gradient, per-type gradient icon tiles and letter avatars, rounded cards, floating glass tab bar, countdown rings for TOTP, copy toasts
-- Extension: every popup screen, the in-page autofill dropdown/save prompt and the passkey picker restyled; Android app uses the same visual language (translucent fills over a radial-gradient aurora, since React Native has no native backdrop blur)
-- `docs/ANDROID.md` now has a step-by-step Windows build-and-test guide with a smoke-test checklist
+- Calmer, cleaner look in a single blue accent: near-flat backgrounds with one faint glow, opaque surfaces with hairline borders, no heavy blur or glow (`@voult/ui-tokens`, extension CSS)
+- Android: removed shadows/elevation, which drew a dark rectangle under translucent inputs and cards
+- Android: bottom-sheet drawers (new-item menu, confirmations, password generator); own toggle, checkbox and slider instead of the platform switch; cleaner Generator page with strength meter, sliders and per-option toggles; the generator drawer opens from the login editor with every option
+- Extension: own dropdown (`Select`) and checkbox components instead of native controls
+- Logins have one "email or username" field (inferred on save) with suggestions ranked by how many logins use each value
+- Logins show the website's own `/favicon.ico` (fetched directly from the site, never via a third party; setting "Website icons"), falling back to the letter avatar
+- Tap any field in a detail view to copy it, in both apps
+- Page transitions in both apps (slide for detail/editor, fade between tabs)
+- Extension: toolbar/store icon; setting "Open in a centred window" for a popup in the middle of the screen
+- Core: `inferIdentifier`, `identifierSuggestions`, `faviconUrl`, password strength estimate
 
 ### Phase 6 — Android app MVP
 

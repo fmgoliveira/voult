@@ -73,7 +73,7 @@ function Row({ v }: { v: ItemView }) {
         onClick={() => open({ name: 'detail', id: v.id })}
         className="flex min-w-0 flex-1 items-center gap-3 rounded-2xl p-2.5 text-left"
       >
-        <ItemAvatar type={i.type} title={i.title} />
+        <ItemAvatar type={i.type} title={i.title} urls={i.type === 'login' ? i.urls : undefined} />
         <span className="min-w-0 flex-1">
           <span className="flex items-center gap-1.5 truncate text-[14px] font-semibold">
             <span className="truncate">{i.title || 'Untitled'}</span>
@@ -287,12 +287,19 @@ function Line({
       <div className="min-w-0 flex-1">
         <div className="text-[11px] font-semibold tracking-wide text-muted">{label}</div>
         {children ?? (
-          <div
-            className={`truncate text-sm ${mono || secret ? 'font-mono' : ''}`}
-            data-testid={`field-${label.toLowerCase()}`}
+          <button
+            type="button"
+            title={`Click to copy ${label.toLowerCase()}`}
+            onClick={() => void copySecret(value, `${label} copied`)}
+            className="-mx-1.5 -my-0.5 block w-[calc(100%+12px)] cursor-copy rounded-lg px-1.5 py-0.5 text-left transition-colors hover:bg-primary/8"
           >
-            {secret && !shown ? '••••••••••••' : value}
-          </div>
+            <span
+              className={`block truncate text-sm ${mono || secret ? 'font-mono' : ''}`}
+              data-testid={`field-${label.toLowerCase()}`}
+            >
+              {secret && !shown ? '••••••••••••' : value}
+            </span>
+          </button>
         )}
       </div>
       {secret && (
@@ -341,7 +348,12 @@ function Detail({ v }: { v: ItemView }) {
 
       <div className="flex-1 space-y-3 overflow-auto px-4 pb-3">
         <div className="flex flex-col items-center gap-1.5 pt-1 pb-1 text-center">
-          <ItemAvatar type={i.type} title={i.title} size={56} />
+          <ItemAvatar
+            type={i.type}
+            title={i.title}
+            size={56}
+            urls={i.type === 'login' ? i.urls : undefined}
+          />
           <h2
             className="max-w-full truncate text-lg font-extrabold tracking-tight"
             data-testid="detail-title"
@@ -520,12 +532,12 @@ function Detail({ v }: { v: ItemView }) {
 
 export function VaultTab({ items, vaults }: { items: ItemView[]; vaults: VaultView[] }) {
   const view = useNav((s) => s.view);
-  if (view.name === 'new') return <Editor type={view.type} vaults={vaults} />;
+  if (view.name === 'new') return <Editor type={view.type} vaults={vaults} items={items} />;
   if (view.name === 'detail' || view.name === 'edit') {
     const v = items.find((x) => x.id === view.id);
     if (!v) return <List items={items} vaults={vaults} />;
     return view.name === 'edit' ? (
-      <Editor type={v.item.type} existing={v} vaults={vaults} />
+      <Editor type={v.item.type} existing={v} vaults={vaults} items={items} />
     ) : (
       <Detail v={v} />
     );

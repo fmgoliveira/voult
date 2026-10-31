@@ -94,7 +94,11 @@ export default function TabsLayout() {
   return (
     <Tabs
       tabBar={(p) => <FloatingTabBar {...(p as unknown as BarProps)} />}
-      screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: 'transparent' } }}
+      screenOptions={{
+        headerShown: false,
+        animation: 'fade',
+        sceneStyle: { backgroundColor: 'transparent' },
+      }}
     >
       <Tabs.Screen name="index" options={{ title: 'Vault' }} />
       <Tabs.Screen name="codes" options={{ title: 'Codes' }} />

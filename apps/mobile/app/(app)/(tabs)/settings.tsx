@@ -1,10 +1,11 @@
 import { WrongPasswordError } from '@voult/core';
 import { useEffect, useState } from 'react';
-import { Alert, ScrollView, Switch, Text, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
 import { friendlyError, useApp } from '../../../src/lib/app-store';
 import { getRuntime } from '../../../src/lib/runtime';
 import type { Settings } from '../../../src/lib/settings';
 import { useAction } from '../../../src/ui/hooks';
+import { ConfirmSheet, Toggle } from '../../../src/ui/controls';
 import { Button, Chip, ErrorText, Field, Screen, Section } from '../../../src/ui/kit';
 import { useTheme } from '../../../src/ui/theme';
 
@@ -130,6 +131,7 @@ export default function SettingsTab() {
   } = useApp();
   const [devices, setDevices] = useState<Device[]>([]);
   const [pinDraft, setPinDraft] = useState('');
+  const [signOut, setSignOut] = useState(false);
   const bio = useAction();
   const pin = useAction();
 
@@ -181,7 +183,7 @@ export default function SettingsTab() {
 
         <Section title="Security">
           <Row label="Biometric unlock">
-            <Switch
+            <Toggle
               accessibilityLabel="Biometric unlock"
               value={quick.biometric}
               disabled={!quick.biometricAvailable}
@@ -205,7 +207,7 @@ export default function SettingsTab() {
           <ErrorText>{bio.error}</ErrorText>
 
           <Row label="PIN unlock">
-            <Switch
+            <Toggle
               accessibilityLabel="PIN unlock"
               value={quick.pin}
               onValueChange={(on) =>
@@ -257,7 +259,7 @@ export default function SettingsTab() {
             onChange={(clipboardClearSeconds) => set({ clipboardClearSeconds })}
           />
           <Row label="Block screenshots">
-            <Switch
+            <Toggle
               accessibilityLabel="Block screenshots"
               value={settings.blockScreenshots}
               onValueChange={(blockScreenshots) => set({ blockScreenshots })}
@@ -282,6 +284,16 @@ export default function SettingsTab() {
             value={settings.theme}
             onChange={(theme) => set({ theme })}
           />
+          <Row label="Website icons">
+            <Toggle
+              accessibilityLabel="Website icons"
+              value={settings.showIcons}
+              onValueChange={(showIcons) => set({ showIcons })}
+            />
+          </Row>
+          <Text style={{ color: c.muted, fontSize: 12 }}>
+            Icons are fetched directly from each website, never through a third-party service.
+          </Text>
         </Section>
 
         <Section title="Devices">
@@ -320,25 +332,18 @@ export default function SettingsTab() {
         </Section>
 
         <View style={{ paddingTop: 16 }}>
-          <Button
-            variant="danger"
-            label="Sign out"
-            onPress={() =>
-              Alert.alert(
-                'Sign out?',
-                'This removes the vault from this phone. Unsynced changes will be lost.',
-                [
-                  { text: 'Cancel', style: 'cancel' },
-                  {
-                    text: 'Sign out',
-                    style: 'destructive',
-                    onPress: () =>
-                      void getRuntime()
-                        .then((rt) => rt.accounts.signOut())
-                        .then(refresh),
-                  },
-                ],
-              )
+          <Button variant="danger" label="Sign out" onPress={() => setSignOut(true)} />
+          <ConfirmSheet
+            visible={signOut}
+            title="Sign out?"
+            message="This removes the vault from this phone. Unsynced changes will be lost."
+            confirmLabel="Sign out"
+            destructive
+            onClose={() => setSignOut(false)}
+            onConfirm={() =>
+              void getRuntime()
+                .then((rt) => rt.accounts.signOut())
+                .then(refresh)
             }
           />
         </View>

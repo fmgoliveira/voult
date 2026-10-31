@@ -88,3 +88,38 @@ export function generatePassphrase(opts: Partial<PassphraseOptions> = {}): strin
   if (o.appendDigit) words[words.length - 1] += String(randomInt(10));
   return words.join(o.separator);
 }
+
+/** Approximate entropy of a password drawn with `opts` (ignores the "one of each set" guarantee). */
+export function randomEntropyBits(opts: Partial<RandomOptions> = {}): number {
+  const o = { ...DEFAULT_RANDOM_OPTIONS, ...opts };
+  const size = (['upper', 'lower', 'digits', 'symbols'] as const)
+    .filter((k) => o[k])
+    .reduce(
+      (n, k) => n + (o.excludeAmbiguous ? SETS[k].replace(AMBIGUOUS, '') : SETS[k]).length,
+      0,
+    );
+  return size > 1 ? o.length * Math.log2(size) : 0;
+}
+
+/** Entropy of a passphrase: each word is uniform over the EFF list; a digit adds ~3.3 bits. */
+export function passphraseEntropyBits(opts: Partial<PassphraseOptions> = {}): number {
+  const words = opts.words ?? 5;
+  return words * Math.log2(EFF_WORDLIST.length) + (opts.appendDigit ? Math.log2(10) : 0);
+}
+
+export type StrengthLabel = 'Weak' | 'Fair' | 'Good' | 'Strong' | 'Excellent';
+
+/** Plain-language bucket and a 0–1 fill for a strength bar. */
+export function strengthOf(bits: number): { label: StrengthLabel; level: number } {
+  const label: StrengthLabel =
+    bits < 40
+      ? 'Weak'
+      : bits < 60
+        ? 'Fair'
+        : bits < 80
+          ? 'Good'
+          : bits < 110
+            ? 'Strong'
+            : 'Excellent';
+  return { label, level: Math.min(1, bits / 128) };
+}

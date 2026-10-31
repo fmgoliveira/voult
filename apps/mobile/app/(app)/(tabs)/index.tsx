@@ -3,19 +3,19 @@ import { queryItems, type ItemType, type SortKey, type TypeFilter } from '@voult
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { FlatList, Modal, Pressable, ScrollView, Text, View } from 'react-native';
+import { FlatList, Pressable, ScrollView, Text, View } from 'react-native';
 import { useApp } from '../../../src/lib/app-store';
 import { useListQuery } from '../../../src/lib/list-query';
 import {
   Chip,
   Empty,
-  Glass,
   GlassIconButton,
   Logo,
   Screen,
   SearchBar,
   TypeTile,
 } from '../../../src/ui/kit';
+import { Sheet } from '../../../src/ui/controls';
 import { ItemRow, TYPE_ICON, TYPE_LABEL } from '../../../src/ui/items';
 import { useTheme } from '../../../src/ui/theme';
 
@@ -184,51 +184,34 @@ export default function VaultTab() {
         )}
       </View>
 
-      <Modal transparent animationType="fade" visible={menu} onRequestClose={() => setMenu(false)}>
-        <Pressable
-          accessibilityLabel="Close menu"
-          onPress={() => setMenu(false)}
-          style={{ flex: 1, backgroundColor: '#0009', justifyContent: 'flex-end', padding: 16 }}
-        >
-          <Glass strong radius={26} style={{ padding: 10 }}>
-            <Text
+      <Sheet visible={menu} onClose={() => setMenu(false)} title="New item" testID="new-menu">
+        <View style={{ paddingHorizontal: 12, paddingTop: 4 }}>
+          {TYPES.map((t) => (
+            <Pressable
+              key={t}
+              accessibilityRole="menuitem"
+              testID={`new-${t}`}
+              onPress={() => {
+                setMenu(false);
+                router.push({ pathname: '/item/edit', params: { type: t } });
+              }}
+              android_ripple={{ color: c.border }}
               style={{
-                color: c.muted,
-                fontSize: 12,
-                fontWeight: '800',
-                letterSpacing: 1,
-                padding: 8,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 14,
+                padding: 10,
+                borderRadius: 16,
               }}
             >
-              NEW ITEM
-            </Text>
-            {TYPES.map((t) => (
-              <Pressable
-                key={t}
-                accessibilityRole="menuitem"
-                testID={`new-${t}`}
-                onPress={() => {
-                  setMenu(false);
-                  router.push({ pathname: '/item/edit', params: { type: t } });
-                }}
-                android_ripple={{ color: c.border }}
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: 14,
-                  padding: 10,
-                  borderRadius: 16,
-                }}
-              >
-                <TypeTile type={t} size={40} />
-                <Text style={{ color: c.foreground, fontSize: 17, fontWeight: '600' }}>
-                  {TYPE_LABEL[t]}
-                </Text>
-              </Pressable>
-            ))}
-          </Glass>
-        </Pressable>
-      </Modal>
+              <TypeTile type={t} size={40} />
+              <Text style={{ color: c.foreground, fontSize: 17, fontWeight: '600' }}>
+                {TYPE_LABEL[t]}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      </Sheet>
     </Screen>
   );
 }

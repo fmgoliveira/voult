@@ -10,7 +10,7 @@ appId: com.franciscoliveira.voult
     id: input-title
 - inputText: GitHub
 - tapOn:
-    id: input-username
+    id: input-identifier
 - inputText: octocat
 - tapOn:
     id: input-password

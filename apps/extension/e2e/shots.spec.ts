@@ -60,7 +60,8 @@ test('capture screens', async () => {
   await nav.getByText('Settings').click();
   await shot('10-settings');
 
-  await popup.getByLabel('Theme').selectOption('dark');
+  await popup.getByLabel('Theme').click();
+  await popup.getByRole('option', { name: 'Dark' }).click();
   await nav.getByText('Vault').click();
   await shot('11-list-dark');
   await nav.getByText('Codes').click();

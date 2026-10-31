@@ -8,8 +8,8 @@ const CSS = `
 :host { all: initial; }
 * { box-sizing: border-box; font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
 .icon { position: fixed; z-index: 2147483646; width: 24px; height: 24px; border: 0; padding: 0; cursor: pointer;
-  border-radius: 8px; background: linear-gradient(135deg, #6d5bf7, #a35cf6); display: none; align-items: center; justify-content: center;
-  box-shadow: 0 4px 12px -2px rgba(109, 91, 247, .6), inset 0 1px 0 rgba(255,255,255,.35); transition: transform .12s ease; }
+  border-radius: 8px; background: linear-gradient(135deg, #3b82f6, #1d4ed8); display: none; align-items: center; justify-content: center;
+  box-shadow: 0 4px 12px -2px rgba(37, 99, 235, .5), inset 0 1px 0 rgba(255,255,255,.35); transition: transform .12s ease; }
 .icon:hover { transform: scale(1.08); }
 .icon svg { width: 15px; height: 15px; }
 .menu { position: fixed; z-index: 2147483647; min-width: 250px; max-width: 340px; padding: 6px; font-size: 13px; color: #171a2b;
@@ -19,7 +19,7 @@ const CSS = `
   animation: pop .16s cubic-bezier(.2,.9,.3,1.2); }
 .menu button { display: flex; align-items: center; gap: 10px; width: 100%; border: 0; background: none; text-align: left;
   padding: 7px 8px; border-radius: 11px; cursor: pointer; color: inherit; font-size: 13px; }
-.menu button:hover, .menu button:focus-visible { background: rgba(99,102,241,.13); outline: none; }
+.menu button:hover, .menu button:focus-visible { background: rgba(37,99,235,.12); outline: none; }
 .menu .avatar { flex: none; width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; color: #fff;
   font-weight: 700; font-size: 13px; }
 .menu .text { display: flex; flex-direction: column; min-width: 0; }
@@ -39,8 +39,8 @@ const CSS = `
 .bar button { height: 34px; padding: 0 14px; border-radius: 11px; border: 1px solid rgba(120,110,200,.25); background: rgba(255,255,255,.6);
   cursor: pointer; font-size: 13px; font-weight: 600; color: inherit; transition: transform .1s ease; }
 .bar button:active { transform: scale(.96); }
-.bar button.primary { background: linear-gradient(135deg, #6d5bf7, #a35cf6); border-color: transparent; color: #fff;
-  box-shadow: 0 6px 16px -4px rgba(109,91,247,.6); }
+.bar button.primary { background: linear-gradient(135deg, #3b82f6, #1d4ed8); border-color: transparent; color: #fff;
+  box-shadow: 0 6px 16px -4px rgba(37,99,235,.5); }
 @keyframes pop { from { opacity: 0; transform: translateY(-4px) scale(.97); } }
 @keyframes slide { from { opacity: 0; transform: translateY(-10px) scale(.97); } }
 @media (prefers-reduced-motion: reduce) { .menu, .bar { animation: none; } }
@@ -56,7 +56,7 @@ const CSS = `
 const LOGO =
   '<svg viewBox="0 0 40 40" aria-hidden="true"><path d="M20 8.5 29.5 12v7.2c0 5.4-3.8 9.8-9.5 12.3-5.7-2.5-9.5-6.9-9.5-12.3V12L20 8.5Z" fill="rgba(255,255,255,.2)" stroke="#fff" stroke-width="2.2" stroke-linejoin="round"/><path d="M16 20.5l3 3 5.5-6" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 const BAR_LOGO =
-  '<svg viewBox="0 0 40 40" aria-hidden="true"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6d5bf7"/><stop offset="1" stop-color="#b06cf7"/></linearGradient></defs><rect width="40" height="40" rx="12" fill="url(#g)"/><path d="M20 8.5 29.5 12v7.2c0 5.4-3.8 9.8-9.5 12.3-5.7-2.5-9.5-6.9-9.5-12.3V12L20 8.5Z" fill="rgba(255,255,255,.2)" stroke="#fff" stroke-width="1.8" stroke-linejoin="round"/><path d="M16 20.5l3 3 5.5-6" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  '<svg viewBox="0 0 40 40" aria-hidden="true"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3b82f6"/><stop offset="1" stop-color="#1d4ed8"/></linearGradient></defs><rect width="40" height="40" rx="12" fill="url(#g)"/><path d="M20 8.5 29.5 12v7.2c0 5.4-3.8 9.8-9.5 12.3-5.7-2.5-9.5-6.9-9.5-12.3V12L20 8.5Z" fill="rgba(255,255,255,.2)" stroke="#fff" stroke-width="1.8" stroke-linejoin="round"/><path d="M16 20.5l3 3 5.5-6" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
 export interface MenuItem {
   label: string;

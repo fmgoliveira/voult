@@ -36,8 +36,8 @@ function Ring({ remaining, progress, low }: { remaining: number; progress: numbe
     >
       <defs>
         <linearGradient id={id} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor={low ? '#fb7185' : '#7c74ff'} />
-          <stop offset="1" stopColor={low ? '#e11d48' : '#c084fc'} />
+          <stop offset="0" stopColor={low ? '#fb7185' : '#5b95ff'} />
+          <stop offset="1" stopColor={low ? '#e11d48' : '#38bdf8'} />
         </linearGradient>
       </defs>
       <circle cx="20" cy="20" r={r} fill="none" stroke="var(--border)" strokeWidth="3.5" />

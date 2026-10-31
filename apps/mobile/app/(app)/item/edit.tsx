@@ -1,6 +1,8 @@
 import {
   blankItem,
-  generatePassword,
+  identifierOf,
+  identifierSuggestions,
+  inferIdentifier,
   itemSchema,
   parseTotpInput,
   type Item,
@@ -8,16 +10,93 @@ import {
   type LoginItem,
 } from '@voult/core';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
-import { KeyboardAvoidingView, ScrollView, Switch, Text, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { KeyboardAvoidingView, Pressable, ScrollView, Text, View } from 'react-native';
 import { useApp } from '../../../src/lib/app-store';
 import { getRuntime } from '../../../src/lib/runtime';
 import { useAction } from '../../../src/ui/hooks';
+import { Toggle } from '../../../src/ui/controls';
+import { GeneratorSheet } from '../../../src/ui/generator';
 import { Button, ErrorText, Field, IconButton, Screen, TypeTile } from '../../../src/ui/kit';
 import { TYPE_LABEL } from '../../../src/ui/items';
 import { useTheme } from '../../../src/ui/theme';
 
 type Draft = Item & Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+
+/** One input for "email or username": we work out which it is, and offer ones already in use. */
+function IdentifierField({
+  login,
+  onChange,
+}: {
+  login: { username: string; email: string };
+  onChange: (v: { username: string; email: string }) => void;
+}) {
+  const { c } = useTheme();
+  const items = useApp((s) => s.items);
+  const [focused, setFocused] = useState(false);
+  const value = identifierOf(login);
+  const suggestions = useMemo(
+    () =>
+      identifierSuggestions(
+        items.map((i) => i.item),
+        value,
+      ),
+    [items, value],
+  );
+  return (
+    <View style={{ gap: 6 }}>
+      <Field
+        testID="input-identifier"
+        label="Email or username"
+        value={value}
+        icon={inferIdentifier(value).email ? 'mail-outline' : 'person-outline'}
+        keyboardType="email-address"
+        autoComplete="off"
+        onFocus={() => setFocused(true)}
+        onBlur={() => setTimeout(() => setFocused(false), 150)}
+        onChangeText={(v) => onChange(inferIdentifier(v))}
+      />
+      {focused && suggestions.length > 0 ? (
+        <View
+          style={{
+            borderRadius: 14,
+            borderWidth: 1,
+            borderColor: c.border,
+            backgroundColor: c.surfaceSolid,
+            overflow: 'hidden',
+          }}
+        >
+          {suggestions.map((s, n) => (
+            <Pressable
+              key={s.value}
+              accessibilityRole="button"
+              accessibilityLabel={`Use ${s.value}, ${s.count} accounts`}
+              onPress={() => onChange(inferIdentifier(s.value))}
+              android_ripple={{ color: c.border }}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 12,
+                paddingHorizontal: 14,
+                paddingVertical: 12,
+                borderTopWidth: n === 0 ? 0 : 1,
+                borderTopColor: c.border,
+              }}
+            >
+              <Text numberOfLines={1} style={{ flex: 1, color: c.foreground, fontSize: 15 }}>
+                {s.value}
+              </Text>
+              <Text style={{ color: c.muted, fontSize: 12 }}>
+                {s.count} {s.count === 1 ? 'account' : 'accounts'}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
+    </View>
+  );
+}
 
 export default function EditItem() {
   const { c } = useTheme();
@@ -31,6 +110,7 @@ export default function EditItem() {
     const it = existing?.item;
     return (it?.type === 'login' || it?.type === 'totp' ? it.totp?.secret : '') ?? '';
   });
+  const [generating, setGenerating] = useState(false);
   const vaultId = existing?.vaultId ?? vaults[0]?.id ?? '';
   const { busy, error, run } = useAction();
 
@@ -107,8 +187,10 @@ export default function EditItem() {
 
           {draft.type === 'login' && (
             <>
-              {text('Username', 'username')}
-              {text('Email', 'email', { keyboardType: 'email-address' })}
+              <IdentifierField
+                login={{ username: draft.username, email: draft.email }}
+                onChange={(v) => patch(v)}
+              />
               <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 4 }}>
                 <View style={{ flex: 1 }}>
                   <Field
@@ -122,7 +204,7 @@ export default function EditItem() {
                 <IconButton
                   icon="sparkles-outline"
                   label="Generate password"
-                  onPress={() => patch({ password: generatePassword({ length: 20 }) })}
+                  onPress={() => setGenerating(true)}
                 />
               </View>
               {(draft.urls as LoginItem['urls']).map((u, n) => (
@@ -217,7 +299,7 @@ export default function EditItem() {
           />
 
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-            <Switch
+            <Toggle
               value={draft.favorite}
               onValueChange={(v) => patch({ favorite: v })}
               accessibilityLabel="Favourite"
@@ -227,6 +309,11 @@ export default function EditItem() {
           <ErrorText>{error}</ErrorText>
         </ScrollView>
       </KeyboardAvoidingView>
+      <GeneratorSheet
+        visible={generating}
+        onClose={() => setGenerating(false)}
+        onUse={(password) => patch({ password })}
+      />
     </Screen>
   );
 }

@@ -1,6 +1,6 @@
 import { Download, KeyRound, Lock, Mail, Server, ShieldAlert } from 'lucide-react';
 import { useState } from 'react';
-import { Button, ErrorText, Field, Input, Logo } from '../components/ui';
+import { Button, Checkbox, ErrorText, Field, Input, Logo } from '../components/ui';
 import { ApiError } from '../lib/api';
 import { useAsyncAction } from '../lib/hooks';
 import { buildRecoveryKitPdf, downloadBytes } from '../lib/recovery-kit';
@@ -32,7 +32,7 @@ function Shell({
       <div className="flex flex-col items-center gap-2.5 pb-5 text-center">
         <div className="relative">
           <div className="absolute inset-0 -z-10 scale-[1.9] rounded-full bg-primary/35 blur-2xl" />
-          <div className="float-slow">
+          <div>
             <Logo size={58} />
           </div>
         </div>
@@ -216,17 +216,9 @@ export function RecoveryKit({
           still continue with your master password.
         </p>
       )}
-      <label className="flex items-start gap-2.5 text-xs leading-snug text-muted">
-        <input
-          type="checkbox"
-          className="mt-0.5 size-4 shrink-0 accent-[var(--primary)]"
-          checked={saved}
-          onChange={(e) => setSaved(e.target.checked)}
-        />
-        <span>
-          I stored my recovery kit somewhere safe. I understand Voult cannot reset my password.
-        </span>
-      </label>
+      <Checkbox checked={saved} onChange={setSaved} className="text-xs leading-snug text-muted">
+        I stored my recovery kit somewhere safe. I understand Voult cannot reset my password.
+      </Checkbox>
       <Button className="w-full" disabled={!saved} onClick={() => void confirmRecoveryKit()}>
         Continue
       </Button>

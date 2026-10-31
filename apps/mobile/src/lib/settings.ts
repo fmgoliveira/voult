@@ -6,6 +6,8 @@ export interface Settings {
   theme: 'system' | 'light' | 'dark';
   /** FLAG_SECURE: block screenshots, screen recording and the recents thumbnail. */
   blockScreenshots: boolean;
+  /** Fetch each website's own icon for logins (no third party involved). */
+  showIcons: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -13,6 +15,7 @@ export const DEFAULT_SETTINGS: Settings = {
   clipboardClearSeconds: 30,
   theme: 'system',
   blockScreenshots: true,
+  showIcons: true,
 };
 
 export const DEFAULT_SERVER_URL = 'https://voult.franciscoliveira.com';

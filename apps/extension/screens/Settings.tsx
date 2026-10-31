@@ -272,7 +272,7 @@ export function SettingsTab({ settings, status }: { settings: Settings; status: 
               rows={2}
               defaultValue={settings.neverSave.join(LF)}
               onBlur={(e) => set({ neverSave: lines(e.target.value) })}
-              className="w-full rounded-xl border border-border bg-surface p-2.5 text-sm backdrop-blur-md focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:outline-0"
+              className="w-full rounded-xl border border-border bg-surface p-2.5 text-sm focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:outline-0"
             />
           )}
         </Field>
@@ -283,7 +283,7 @@ export function SettingsTab({ settings, status }: { settings: Settings; status: 
               rows={2}
               defaultValue={settings.passkeyOptOut.join(LF)}
               onBlur={(e) => set({ passkeyOptOut: lines(e.target.value) })}
-              className="w-full rounded-xl border border-border bg-surface p-2.5 text-sm backdrop-blur-md focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:outline-0"
+              className="w-full rounded-xl border border-border bg-surface p-2.5 text-sm focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:outline-0"
             />
           )}
         </Field>
@@ -305,6 +305,28 @@ export function SettingsTab({ settings, status }: { settings: Settings; status: 
             <option value="dark">Dark</option>
           </Select>
         </Row>
+        <Row label="Website icons">
+          <Switch
+            label="Website icons"
+            checked={settings.showIcons}
+            onChange={(v) => set({ showIcons: v })}
+          />
+        </Row>
+        <p className="text-xs text-muted">
+          Icons are fetched directly from each website, never through a third-party service. Turn
+          off to avoid contacting those sites from the vault list.
+        </p>
+        <Row label="Open in a centred window">
+          <Switch
+            label="Open in a centred window"
+            checked={settings.centeredWindow}
+            onChange={(v) => set({ centeredWindow: v })}
+          />
+        </Row>
+        <p className="text-xs text-muted">
+          Browsers pin the toolbar popup under the button. This opens Voult in a small window in the
+          middle of your screen instead.
+        </p>
       </Section>
 
       <Section title="Devices">

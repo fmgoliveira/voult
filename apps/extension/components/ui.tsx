@@ -1,5 +1,5 @@
 import { avatarGradient, typeColors } from '@voult/ui-tokens';
-import type { ItemType } from '@voult/core';
+import { faviconUrl, type ItemType } from '@voult/core';
 import clsx, { type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import {
@@ -13,13 +13,18 @@ import {
   StickyNote,
   type LucideIcon,
 } from 'lucide-react';
-import type {
-  ButtonHTMLAttributes,
-  InputHTMLAttributes,
-  ReactNode,
-  SelectHTMLAttributes,
+import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from 'react';
+import {
+  Children,
+  forwardRef,
+  isValidElement,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
 } from 'react';
-import { forwardRef, useId } from 'react';
+import { createPortal } from 'react-dom';
 import { create } from 'zustand';
 
 /** Class names with Tailwind conflicts resolved (so `px-0` really overrides `px-4`). */
@@ -44,8 +49,7 @@ export function Button({
         variant === 'primary' && 'brand-bg brand-glow hover:brightness-110',
         variant === 'secondary' && 'glass hover:bg-surface-strong',
         variant === 'ghost' && 'text-fg hover:bg-surface',
-        variant === 'danger' &&
-          'bg-gradient-to-br from-rose-500 to-red-600 text-white shadow-[0_8px_20px_-8px_rgba(225,29,72,0.7)] hover:brightness-110',
+        variant === 'danger' && 'bg-danger text-white hover:brightness-110',
         className,
       )}
     >
@@ -93,8 +97,8 @@ export const Input = forwardRef<
         ref={ref}
         {...p}
         className={cn(
-          'h-10 w-full rounded-xl border border-border bg-surface px-3 text-sm text-fg shadow-sm',
-          'backdrop-blur-md transition-colors placeholder:text-muted/80',
+          'h-10 w-full rounded-xl border border-border bg-surface px-3 text-sm text-fg',
+          'transition-colors placeholder:text-muted/80',
           'hover:border-border-strong focus-visible:border-primary focus-visible:outline-0',
           'focus-visible:ring-2 focus-visible:ring-primary/30',
           leading && 'pl-9',
@@ -109,25 +113,198 @@ export function SearchInput(p: InputHTMLAttributes<HTMLInputElement>) {
   return <Input type="search" leading={<Search size={16} />} {...p} />;
 }
 
-export function Select({ className, children, ...p }: SelectHTMLAttributes<HTMLSelectElement>) {
+interface SelectOption {
+  value: string;
+  label: ReactNode;
+}
+
+/**
+ * Themed dropdown. Same call shape as a native <select> (children are <option>s and onChange gets
+ * `e.target.value`), but rendered by us so it matches the rest of the UI.
+ */
+export function Select({
+  className,
+  children,
+  value,
+  onChange,
+  id,
+  disabled,
+  'aria-label': ariaLabel,
+}: {
+  className?: string;
+  children: ReactNode;
+  value: string | number;
+  onChange: (e: { target: { value: string } }) => void;
+  id?: string;
+  disabled?: boolean;
+  'aria-label'?: string;
+}) {
+  const options: SelectOption[] = [];
+  Children.forEach(children, (c) => {
+    if (isValidElement<{ value?: string | number; children?: ReactNode }>(c))
+      options.push({ value: String(c.props.value ?? ''), label: c.props.children });
+  });
+  const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(0);
+  const [box, setBox] = useState<{ left: number; width: number; top?: number; bottom?: number }>();
+  const btn = useRef<HTMLButtonElement>(null);
+  const list = useRef<HTMLUListElement>(null);
+  const selected = options.findIndex((o) => o.value === String(value));
+
+  useLayoutEffect(() => {
+    if (!open || !btn.current) return;
+    const r = btn.current.getBoundingClientRect();
+    const room = window.innerHeight - r.bottom;
+    const need = Math.min(options.length * 36 + 8, 240);
+    const width = Math.max(r.width, 140);
+    const left = Math.max(8, Math.min(r.left, window.innerWidth - width - 8));
+    setBox(
+      room >= need || room > r.top
+        ? { left, width, top: r.bottom + 4 }
+        : { left, width, bottom: window.innerHeight - r.top + 4 },
+    );
+  }, [open, options.length]);
+
+  useEffect(() => {
+    if (!open) return;
+    const away = (e: PointerEvent) => {
+      const t = e.target as Node;
+      if (!btn.current?.contains(t) && !list.current?.contains(t)) setOpen(false);
+    };
+    const close = () => setOpen(false);
+    document.addEventListener('pointerdown', away, true);
+    window.addEventListener('blur', close);
+    window.addEventListener('resize', close);
+    return () => {
+      document.removeEventListener('pointerdown', away, true);
+      window.removeEventListener('blur', close);
+      window.removeEventListener('resize', close);
+    };
+  }, [open]);
+
+  const pick = (i: number) => {
+    const o = options[i];
+    if (o) onChange({ target: { value: o.value } });
+    setOpen(false);
+    btn.current?.focus();
+  };
+
+  const onKey = (e: React.KeyboardEvent) => {
+    if (e.key === 'Escape' && open) {
+      e.preventDefault();
+      setOpen(false);
+    } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (!open) {
+        setActive(Math.max(selected, 0));
+        setOpen(true);
+      } else {
+        const d = e.key === 'ArrowDown' ? 1 : -1;
+        setActive((a) => (a + d + options.length) % options.length);
+      }
+    } else if ((e.key === 'Enter' || e.key === ' ') && open) {
+      e.preventDefault();
+      pick(active);
+    }
+  };
+
   return (
     <div className="relative">
-      <select
-        {...p}
+      <button
+        ref={btn}
+        id={id}
+        type="button"
+        role="combobox"
+        aria-label={ariaLabel}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        disabled={disabled}
+        onClick={() => {
+          setActive(Math.max(selected, 0));
+          setOpen(!open);
+        }}
+        onKeyDown={onKey}
         className={cn(
-          'h-10 w-full appearance-none rounded-xl border border-border bg-surface pr-8 pl-3 text-sm text-fg',
-          'backdrop-blur-md transition-colors hover:border-border-strong focus-visible:border-primary',
-          'focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:outline-0',
+          'flex h-10 w-full items-center justify-between gap-2 rounded-xl border border-border bg-surface pr-2.5 pl-3 text-left text-sm text-fg',
+          'transition-colors hover:border-border-strong focus-visible:border-primary',
+          'focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:outline-0 disabled:opacity-50',
+          open && 'border-primary',
           className,
         )}
       >
-        {children}
-      </select>
-      <ChevronDown
-        size={14}
-        className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-muted"
-      />
+        <span className="truncate">{options[selected]?.label ?? ''}</span>
+        <ChevronDown
+          size={14}
+          className={cn('shrink-0 text-muted transition-transform', open && 'rotate-180')}
+        />
+      </button>
+      {open &&
+        box &&
+        createPortal(
+          <ul
+            ref={list}
+            role="listbox"
+            aria-label={ariaLabel}
+            style={{ position: 'fixed', zIndex: 100, maxHeight: 240, ...box }}
+            className="glass-strong pop-in overflow-auto rounded-xl bg-surface-solid p-1"
+          >
+            {options.map((o, i) => (
+              <li
+                key={o.value}
+                role="option"
+                aria-selected={i === selected}
+                onPointerEnter={() => setActive(i)}
+                onClick={() => pick(i)}
+                className={cn(
+                  'flex h-8 cursor-pointer items-center justify-between gap-2 rounded-lg px-2.5 text-sm',
+                  i === active && 'bg-primary/10',
+                  i === selected && 'font-semibold text-primary',
+                )}
+              >
+                <span className="truncate">{o.label}</span>
+                {i === selected && <Check size={14} />}
+              </li>
+            ))}
+          </ul>,
+          document.body,
+        )}
     </div>
+  );
+}
+
+/** Themed checkbox. The whole row is the click target; `children` is its label. */
+export function Checkbox({
+  checked,
+  onChange,
+  children,
+  className,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      role="checkbox"
+      aria-checked={checked}
+      onClick={() => onChange(!checked)}
+      className={cn('group flex items-start gap-2.5 text-left', className)}
+    >
+      <span
+        className={cn(
+          'mt-px grid size-[18px] shrink-0 place-items-center rounded-md border transition-colors',
+          'group-focus-visible:ring-2 group-focus-visible:ring-primary/40',
+          checked
+            ? 'border-primary bg-primary text-white'
+            : 'border-border-strong bg-surface group-hover:border-primary/60',
+        )}
+      >
+        {checked && <Check size={13} strokeWidth={3} className="pop-in" />}
+      </span>
+      <span>{children}</span>
+    </button>
   );
 }
 
@@ -170,12 +347,12 @@ export function Switch({
       onClick={() => onChange(!checked)}
       className={cn(
         'relative h-6 w-11 shrink-0 rounded-full border border-border transition-colors duration-200',
-        checked ? 'brand-bg brand-glow border-transparent' : 'bg-surface-strong',
+        checked ? 'brand-bg border-transparent' : 'bg-border-strong',
       )}
     >
       <span
         className={cn(
-          'absolute top-0.5 size-5 rounded-full bg-white shadow-md transition-all duration-200',
+          'absolute top-0.5 size-5 rounded-full bg-white shadow-sm transition-all duration-200',
           checked ? 'left-[22px]' : 'left-0.5',
         )}
       />
@@ -204,7 +381,7 @@ export function Pills<T extends string>({
           onClick={() => onChange(o.value)}
           className={cn(
             'rounded-lg px-3 py-1 text-xs font-semibold transition-all',
-            value === o.value ? 'brand-bg brand-glow' : 'text-muted hover:text-fg',
+            value === o.value ? 'brand-bg' : 'text-muted hover:text-fg',
           )}
         >
           {o.label}
@@ -243,7 +420,7 @@ export function Empty({
 }) {
   return (
     <div className="fade-in flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
-      <div className="glass float-slow grid size-16 place-items-center rounded-3xl text-primary">
+      <div className="glass grid size-16 place-items-center rounded-3xl text-primary">
         <Icon size={28} strokeWidth={1.75} />
       </div>
       <div className="space-y-1">
@@ -260,8 +437,8 @@ export function Logo({ size = 28 }: { size?: number }) {
     <svg width={size} height={size} viewBox="0 0 40 40" aria-hidden>
       <defs>
         <linearGradient id={id} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#6d5bf7" />
-          <stop offset="1" stopColor="#b06cf7" />
+          <stop offset="0" stopColor="#3b82f6" />
+          <stop offset="1" stopColor="#1d4ed8" />
         </linearGradient>
       </defs>
       <rect width="40" height="40" rx="12" fill={`url(#${id})`} />
@@ -302,7 +479,7 @@ export function TypeTile({ type, size = 40 }: { type: ItemType; size?: number })
   const [from, to] = typeColors[type];
   return (
     <span
-      className="grid shrink-0 place-items-center rounded-xl text-white shadow-md"
+      className="grid shrink-0 place-items-center rounded-xl text-white"
       style={{
         width: size,
         height: size,
@@ -314,22 +491,36 @@ export function TypeTile({ type, size = 40 }: { type: ItemType; size?: number })
   );
 }
 
-/** Letter avatar for logins (stable colour per title); icon tile for other types. */
+/** Whether to fetch site icons (a setting; App keeps it in sync). */
+export const useIconPref = create<{ on: boolean }>(() => ({ on: true }));
+
+const brokenIcons = new Set<string>();
+
+/**
+ * Logins show the website's own icon (fetched straight from that site, never via a third party)
+ * and fall back to a coloured letter. Other types get an icon tile.
+ */
 export function ItemAvatar({
   type,
   title,
   size = 40,
+  urls,
 }: {
   type: ItemType;
   title: string;
   size?: number;
+  urls?: readonly { url: string }[];
 }) {
+  const iconsOn = useIconPref((s) => s.on);
+  const src = iconsOn && urls ? faviconUrl(urls) : null;
+  const [ok, setOk] = useState(false);
+  const [failed, setFailed] = useState(() => (src ? brokenIcons.has(src) : false));
   if (type !== 'login' || !title.trim()) return <TypeTile type={type} size={size} />;
   const [from, to] = avatarGradient(title.toLowerCase());
   return (
     <span
       aria-hidden
-      className="grid shrink-0 place-items-center rounded-xl font-bold text-white shadow-md"
+      className="relative grid shrink-0 place-items-center overflow-hidden rounded-xl font-bold text-white"
       style={{
         width: size,
         height: size,
@@ -338,6 +529,33 @@ export function ItemAvatar({
       }}
     >
       {title.trim()[0]!.toUpperCase()}
+      {src && !failed && (
+        <span
+          className="absolute inset-0 grid place-items-center bg-white transition-opacity"
+          style={{ opacity: ok ? 1 : 0 }}
+        >
+          <img
+            src={src}
+            alt=""
+            loading="lazy"
+            referrerPolicy="no-referrer"
+            draggable={false}
+            style={{ width: size * 0.62, height: size * 0.62, objectFit: 'contain' }}
+            onLoad={(e) => {
+              // Some sites answer 200 with a 0/1px placeholder.
+              if (e.currentTarget.naturalWidth > 1) setOk(true);
+              else {
+                brokenIcons.add(src);
+                setFailed(true);
+              }
+            }}
+            onError={() => {
+              brokenIcons.add(src);
+              setFailed(true);
+            }}
+          />
+        </span>
+      )}
     </span>
   );
 }

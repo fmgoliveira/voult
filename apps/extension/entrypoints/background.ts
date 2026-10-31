@@ -26,6 +26,7 @@ import {
 import type { ContentRequest } from '../lib/autofill/messages';
 import type { PromptMessage } from '../lib/bg/prompt-types';
 import type { Sender } from '../lib/bg/types';
+import { setupPopupMode } from '../lib/bg/window';
 
 export default defineBackground(() => {
   let syncing: Promise<unknown> | null = null;
@@ -159,6 +160,7 @@ export default defineBackground(() => {
     },
   );
   watchPromptWindows();
+  setupPopupMode();
 
   // Context menu + keyboard shortcut: ask the right frame(s) to run the autofill flow.
   browser.runtime.onInstalled.addListener(() => {

@@ -6,7 +6,8 @@ import {
   ShieldCheck,
   type LucideIcon,
 } from 'lucide-react';
-import { Logo, Toaster } from '../../components/ui';
+import { useEffect, useRef } from 'react';
+import { Logo, Toaster, useIconPref } from '../../components/ui';
 import { useActivityAndTheme, useSettings, useStatus, useVaultData } from '../../lib/hooks';
 import { useNav, type Tab } from '../../lib/nav';
 import { lock } from '../../lib/vault';
@@ -27,16 +28,34 @@ export function App() {
   const settings = useSettings();
   const { tab, setTab, view } = useNav();
   useActivityAndTheme(settings?.theme);
+  useEffect(() => {
+    if (settings) useIconPref.setState({ on: settings.showIcons });
+  }, [settings]);
+  const windowMode = new URLSearchParams(location.search).get('mode') === 'window';
   const unlocked = !!status?.unlocked;
+
+  // Page transitions: deeper views slide in from the right, going back slides in from the left.
+  const depth = tab !== 'vault' ? 0 : view.name === 'list' ? 0 : view.name === 'detail' ? 1 : 2;
+  const prev = useRef({ tab, depth });
+  const pageClass =
+    prev.current.tab !== tab
+      ? 'page-fade'
+      : depth > prev.current.depth
+        ? 'page-forward'
+        : depth < prev.current.depth
+          ? 'page-back'
+          : '';
+  useEffect(() => {
+    prev.current = { tab, depth };
+  });
+  const pageKey = `${tab}:${view.name}:${'id' in view ? view.id : ''}`;
   const data = useVaultData(unlocked && status.hasAccount);
 
   let body: React.ReactNode;
   if (!status || !settings) {
     body = (
       <div className="grid h-full place-items-center">
-        <div className="float-slow">
-          <Logo size={44} />
-        </div>
+        <Logo size={44} />
       </div>
     );
   } else if (!status.hasAccount) body = <Welcome />;
@@ -60,7 +79,7 @@ export function App() {
           <header className="flex items-center gap-2.5 px-4 pt-3.5 pb-2">
             <Logo size={30} />
             <div className="min-w-0 flex-1 leading-tight">
-              <h1 className="text-gradient text-[17px] font-extrabold tracking-tight">Voult</h1>
+              <h1 className="text-[17px] font-extrabold tracking-tight">Voult</h1>
               <p className="truncate text-[11px] text-muted">{status.email}</p>
             </div>
             <button
@@ -73,7 +92,7 @@ export function App() {
             </button>
           </header>
         )}
-        <div className="flex min-h-0 flex-1 flex-col pb-[76px]">
+        <div key={pageKey} className={`flex min-h-0 flex-1 flex-col pb-[76px] ${pageClass}`}>
           {tab === 'vault' &&
             (data ? (
               <VaultTab items={data.items} vaults={data.vaults} />
@@ -98,7 +117,7 @@ export function App() {
                 aria-current={active ? 'page' : undefined}
                 onClick={() => setTab(id)}
                 className={`relative flex flex-col items-center gap-0.5 rounded-xl py-1.5 text-[11px] font-semibold transition-all ${
-                  active ? 'brand-bg brand-glow' : 'text-muted hover:text-fg'
+                  active ? 'brand-bg' : 'text-muted hover:text-fg'
                 }`}
               >
                 <Icon size={18} strokeWidth={active ? 2.25 : 1.9} />
@@ -112,5 +131,11 @@ export function App() {
     );
   }
 
-  return <div className="popup-frame relative mx-auto overflow-hidden">{body}</div>;
+  return (
+    <div
+      className={`popup-frame relative mx-auto overflow-hidden ${windowMode ? 'window-mode' : ''}`}
+    >
+      {body}
+    </div>
+  );
 }
