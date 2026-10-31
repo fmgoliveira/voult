@@ -11,6 +11,7 @@ import {
   Copy,
   ExternalLink,
   Eye,
+  Fingerprint,
   EyeOff,
   KeyRound,
   Plus,
@@ -92,7 +93,17 @@ function Row({ v }: { v: ItemView }) {
               />
             )}
           </span>
-          <span className="block truncate text-xs text-muted">{subtitle(i)}</span>
+          <span className="flex items-center gap-1.5 text-xs text-muted">
+            <span className="truncate">{subtitle(i)}</span>
+            {i.type === 'login' && i.passkeys.length > 0 && (
+              <span
+                title="Has a passkey"
+                className="inline-flex shrink-0 items-center gap-1 rounded-md bg-primary/10 px-1.5 py-px text-[10px] font-semibold text-primary"
+              >
+                <Fingerprint size={10} /> Passkey
+              </span>
+            )}
+          </span>
         </span>
       </button>
       <span className="flex opacity-60 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">

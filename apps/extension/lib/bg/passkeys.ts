@@ -27,6 +27,8 @@ import type { PromptDecision, PromptRequest } from './prompt-types';
 interface PendingPrompt {
   request: PromptRequest;
   resolve: (d: PromptDecision) => void;
+  /** Set when the prompt is shown inside this tab's page. */
+  tabId?: number;
   windowId?: number;
 }
 const prompts = new Map<string, PendingPrompt>();
@@ -41,25 +43,56 @@ export function decidePrompt(id: string, decision: PromptDecision): void {
   prompts.delete(id);
   p.resolve(decision);
   if (p.windowId !== undefined) void browser.windows.remove(p.windowId).catch(() => undefined);
+  if (p.tabId !== undefined)
+    void browser.tabs
+      .sendMessage(p.tabId, { type: 'prompt:hide' }, { frameId: 0 })
+      .catch(() => undefined);
 }
 
-async function askUser(request: PromptRequest): Promise<PromptDecision> {
+/** The page's backdrop was clicked: only the tab showing that prompt may cancel it. */
+export function dismissPrompt(id: string, sender: Sender): void {
+  const p = prompts.get(id);
+  if (p && p.tabId !== undefined && p.tabId === sender.tab?.id && sender.frameId === 0)
+    decidePrompt(id, { action: 'cancel' });
+}
+
+/** Shows the prompt over the page; resolves false if this tab cannot host it. */
+async function showInPage(id: string, entry: PendingPrompt, tabId: number | undefined) {
+  if (tabId === undefined) return false;
+  try {
+    const shown = await browser.tabs.sendMessage(
+      tabId,
+      { type: 'prompt:show', id },
+      { frameId: 0 },
+    );
+    if (shown === true) entry.tabId = tabId;
+    return shown === true;
+  } catch {
+    return false; // no content script here (restricted page, still loading)
+  }
+}
+
+async function askUser(request: PromptRequest, sender: Sender): Promise<PromptDecision> {
   const id = crypto.randomUUID();
   return new Promise<PromptDecision>((resolve) => {
     const entry: PendingPrompt = { request, resolve };
     prompts.set(id, entry);
-    browser.windows
-      .create({
-        url: browser.runtime.getURL(`/prompt.html?id=${id}` as never),
-        type: 'popup',
-        width: 400,
-        height: 560,
-        focused: true,
-      })
-      .then((w) => {
-        entry.windowId = w?.id;
-      })
-      .catch(() => decidePrompt(id, { action: 'fallback' }));
+    void showInPage(id, entry, sender.tab?.id).then((shown) => {
+      if (shown || !prompts.has(id)) return;
+      // Fall back to a small window.
+      browser.windows
+        .create({
+          url: browser.runtime.getURL(`/prompt.html?id=${id}` as never),
+          type: 'popup',
+          width: 400,
+          height: 560,
+          focused: true,
+        })
+        .then((w) => {
+          entry.windowId = w?.id;
+        })
+        .catch(() => decidePrompt(id, { action: 'fallback' }));
+    });
   });
 }
 
@@ -72,6 +105,14 @@ export function watchPromptWindows(): void {
         p.resolve({ action: 'cancel' });
       }
     }
+  });
+  // An in-page prompt dies with its tab or page.
+  const cancelTab = (tabId: number) => {
+    for (const [id, p] of prompts) if (p.tabId === tabId) decidePrompt(id, { action: 'cancel' });
+  };
+  browser.tabs.onRemoved.addListener(cancelTab);
+  browser.tabs.onUpdated.addListener((tabId, change) => {
+    if (change.status === 'loading') cancelTab(tabId);
   });
 }
 
@@ -127,16 +168,19 @@ export async function handlePasskeyCreate(
     return { status: 'error', name: 'InvalidStateError' };
   }
 
-  const decision = await askUser({
-    kind: 'create',
-    host: ctx.host,
-    rpId: o.rpId,
-    rpName: o.rpName,
-    userName: o.user.name,
-    candidates: logins
-      .filter((v) => matchLogin(v.item as LoginItem, sender.url!))
-      .map((v) => ({ id: v.id, title: v.item.title, username: (v.item as LoginItem).username })),
-  });
+  const decision = await askUser(
+    {
+      kind: 'create',
+      host: ctx.host,
+      rpId: o.rpId,
+      rpName: o.rpName,
+      userName: o.user.name,
+      candidates: logins
+        .filter((v) => matchLogin(v.item as LoginItem, sender.url!))
+        .map((v) => ({ id: v.id, title: v.item.title, username: (v.item as LoginItem).username })),
+    },
+    sender,
+  );
   if (decision.action === 'fallback') return { status: 'fallback' };
   if (decision.action !== 'create-new' && decision.action !== 'attach') {
     return { status: 'error', name: 'NotAllowedError' };
@@ -225,7 +269,7 @@ export async function handlePasskeyGet(
   );
   if (options.length === 0) return { status: 'fallback' };
 
-  const decision = await askUser({ kind: 'get', host: ctx.host, rpId: o.rpId, options });
+  const decision = await askUser({ kind: 'get', host: ctx.host, rpId: o.rpId, options }, sender);
   if (decision.action === 'fallback') return { status: 'fallback' };
   if (decision.action !== 'use') return { status: 'error', name: 'NotAllowedError' };
 

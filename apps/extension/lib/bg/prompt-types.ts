@@ -29,4 +29,6 @@ export type PromptDecision =
 
 export type PromptMessage =
   | { type: 'prompt:get'; id: string }
-  | { type: 'prompt:decide'; id: string; decision: PromptDecision };
+  | { type: 'prompt:decide'; id: string; decision: PromptDecision }
+  /** From the page's backdrop (content script): the user clicked outside the prompt. */
+  | { type: 'prompt:dismiss'; id: string };

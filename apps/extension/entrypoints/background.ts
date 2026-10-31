@@ -18,6 +18,7 @@ import {
 import { invalidateItems } from '../lib/bg/items';
 import {
   decidePrompt,
+  dismissPrompt,
   getPromptRequest,
   handlePasskeyCreate,
   handlePasskeyGet,
@@ -133,6 +134,9 @@ export default defineBackground(() => {
         return isExtensionPage(sender) ? getPromptRequest(msg.id) : null;
       case 'prompt:decide':
         if (isExtensionPage(sender)) decidePrompt(msg.id, msg.decision);
+        return null;
+      case 'prompt:dismiss':
+        dismissPrompt(msg.id, sender);
         return null;
     }
   }

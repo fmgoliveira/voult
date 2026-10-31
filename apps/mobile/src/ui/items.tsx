@@ -82,9 +82,28 @@ export function ItemRow({ v, onPress }: { v: ItemView; onPress: () => void }) {
                 />
               ) : null}
             </View>
-            <Text numberOfLines={1} style={{ color: c.muted, fontSize: 13 }}>
-              {subtitle(i)}
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Text numberOfLines={1} style={{ flexShrink: 1, color: c.muted, fontSize: 13 }}>
+                {subtitle(i)}
+              </Text>
+              {i.type === 'login' && i.passkeys.length > 0 ? (
+                <View
+                  accessibilityLabel="Has a passkey"
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 3,
+                    borderRadius: 6,
+                    paddingHorizontal: 6,
+                    paddingVertical: 1,
+                    backgroundColor: c.primary + '1f',
+                  }}
+                >
+                  <Ionicons name="finger-print" size={11} color={c.primary} />
+                  <Text style={{ color: c.primary, fontSize: 10, fontWeight: '700' }}>Passkey</Text>
+                </View>
+              ) : null}
+            </View>
           </View>
         </Pressable>
         {i.type === 'login' && i.username ? (

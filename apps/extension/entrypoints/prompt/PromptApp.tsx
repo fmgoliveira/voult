@@ -22,6 +22,22 @@ export function PromptApp() {
   const decide = (decision: PromptDecision) =>
     void browser.runtime.sendMessage({ type: 'prompt:decide', id, decision });
 
+  useEffect(() => window.focus(), []);
+
+  // Escape cancels (the prompt is a modal over the page).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape')
+        void browser.runtime.sendMessage({
+          type: 'prompt:decide',
+          id,
+          decision: { action: 'cancel' },
+        });
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [id]);
+
   if (req === undefined) return <div className="p-6 text-muted">Loading…</div>;
   if (req === null)
     return (

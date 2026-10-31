@@ -9,6 +9,7 @@ import type {
   FillSecrets,
   QueryResponse,
 } from '../../lib/autofill/messages';
+import { PromptFrame } from '../../lib/autofill/prompt-frame';
 import { InPageUi, type MenuItem } from '../../lib/autofill/ui';
 
 async function send<T>(msg: ContentRequest): Promise<T | null> {
@@ -239,12 +240,23 @@ export default defineContentScript({
 
     // ------------------------------------------------------------ commands from the background
 
-    browser.runtime.onMessage.addListener((msg: BackgroundCommand | { type: 'capture:show' }) => {
-      if (msg.type === 'capture:show') void showCapturePrompt();
-      if (msg.type === 'autofill:trigger') void triggerFill();
-      if (msg.type === 'autofill:generate-here') void generateHere();
-      return undefined;
-    });
+    const promptFrame = new PromptFrame();
+    browser.runtime.onMessage.addListener(
+      (msg: BackgroundCommand | { type: 'capture:show' }, _sender, sendResponse) => {
+        if (msg.type === 'prompt:show') {
+          // Only the top frame hosts the prompt.
+          if (window !== window.top) return undefined;
+          promptFrame.show(msg.id, () => void send({ type: 'prompt:dismiss', id: msg.id }));
+          sendResponse(true);
+          return undefined;
+        }
+        if (msg.type === 'prompt:hide') promptFrame.hide();
+        if (msg.type === 'capture:show') void showCapturePrompt();
+        if (msg.type === 'autofill:trigger') void triggerFill();
+        if (msg.type === 'autofill:generate-here') void generateHere();
+        return undefined;
+      },
+    );
 
     async function triggerFill() {
       det = detect(document);

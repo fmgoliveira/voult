@@ -205,22 +205,32 @@ test('"Never for this site" suppresses further save prompts', async () => {
 test('passkeys: register and sign in, verified by a real WebAuthn relying party', async () => {
   const page = await open('/passkey');
 
-  // Register: our picker window appears; choose to save as a new login.
-  let [picker] = await Promise.all([ctx.waitForEvent('page'), page.click('#register')]);
+  // The prompt is shown over the page (an iframe), not in a separate window.
+  const promptFrame = async () => {
+    await expect.poll(() => page.frames().some((f) => /prompt\.html/.test(f.url()))).toBe(true);
+    return page.frames().find((f) => /prompt\.html/.test(f.url()))!;
+  };
+
+  // Register: choose to save as a new login.
+  await page.click('#register');
+  let picker = await promptFrame();
   await expect(picker.getByText('Create a passkey')).toBeVisible();
   await picker.getByRole('button', { name: 'Create passkey' }).click();
   await expect(page.locator('#out')).toHaveText('registered');
 
   // Sign in twice: the sign counter advances and the signature verifies each time.
   for (const counter of [1, 2]) {
-    [picker] = await Promise.all([ctx.waitForEvent('page'), page.click('#signin')]);
+    await page.click('#signin');
+    picker = await promptFrame();
     await picker.getByTestId('passkey-option').first().click();
     await expect(page.locator('#out')).toHaveText(`signed-in:counter=${counter}`);
   }
 
-  // Closing the picker without choosing is a refusal, not a hang.
-  [picker] = await Promise.all([ctx.waitForEvent('page'), page.click('#signin')]);
-  await picker.close();
+  // Escape without choosing is a refusal, not a hang.
+  await page.click('#signin');
+  picker = await promptFrame();
+  await picker.getByTestId('passkey-option').first().waitFor();
+  await page.keyboard.press('Escape');
   await expect(page.locator('#out')).toHaveText('error:NotAllowedError');
   await page.close();
 
