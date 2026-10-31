@@ -21,3 +21,5 @@ shots
 .gradle
 .cxx
 /apps/mobile/modules/*/android/build
+
+*.keystore

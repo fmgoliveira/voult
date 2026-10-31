@@ -206,8 +206,9 @@ test('register form offers a generated password for both fields', async () => {
   await menu(page)
     .getByRole('menuitem', { name: /Generate password/ })
     .click();
+  // The fill is asynchronous (background round trip): wait for it instead of reading at once.
+  await expect(page.locator('input[name=pw]')).toHaveValue(/^.{20}$/);
   const pw = await page.locator('input[name=pw]').inputValue();
-  expect(pw).toHaveLength(20);
   await expect(page.locator('input[name=pw2]')).toHaveValue(pw);
   await page.close();
 });
