@@ -6,3 +6,7 @@ allowBuilds:
   cbor-extract: false
 minimumReleaseAgeExclude:
   - eslint@10.14.0
+nodeLinker: hoisted
+overrides:
+  react: 19.3.0
+  react-dom: 19.3.0

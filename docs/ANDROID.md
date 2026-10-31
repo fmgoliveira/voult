@@ -95,6 +95,16 @@ scene; to scan a real QR code use *Extended controls → Camera* and point it at
 ```bash
 git checkout phase-6-android        # or main once PR #5 is merged
 git pull
+```
+
+The repo installs a **flat `node_modules`** (`nodeLinker: hoisted` in `pnpm-workspace.yaml`). pnpm's
+default layout uses Windows junctions and very long paths, which makes CMake/Ninja fail with
+`build.ninja still dirty after 100 tries`. If you installed before this change, reinstall from scratch
+and drop the old generated Android project (PowerShell):
+
+```powershell
+Remove-Item -Recurse -Force node_modules, apps\*\node_modules, packages\*\node_modules -ErrorAction SilentlyContinue
+Remove-Item -Recurse -Force apps\mobile\android -ErrorAction SilentlyContinue
 pnpm install
 pnpm --filter @voult/core --filter @voult/ui-tokens build    # the app imports these as built packages
 ```
@@ -164,7 +174,8 @@ Tick these off and note anything that looks wrong.
 | --- | --- |
 | `[CXX1101] NDK at ...\ndk\27.1.12297006 did not have a source.properties file` | That NDK folder is a half-finished download. Delete it (PowerShell): `Remove-Item -Recurse -Force "$env:LOCALAPPDATA\Android\Sdk\ndk\27.1.12297006"`, then simply rerun `pnpm android`: Gradle downloads the exact NDK/CMake it needs. If it does not, install them in Android Studio: **SDK Manager > SDK Tools > tick *Show Package Details* > NDK (Side by side) > 27.1.12297006** and **CMake > 3.22.1** > Apply. (The newer `sdkmanager.bat` now forwards to the "Android CLI" and mis-parses `ndk;27.1.12297006`, so prefer the GUI.) Expo pins this exact NDK version, so a different installed NDK does not help. |
 | `SDK location not found` | `ANDROID_HOME` not set in the shell that runs `pnpm android`; open a new terminal. |
-| `ninja: error: … Filename too long` / CMake errors | Enable long paths (step 1.4) and delete `apps/mobile/android` before retrying. |
+| `ninja: error: manifest 'build.ninja' still dirty after 100 tries` (in `react-native-screens` / `react-native-worklets`) | pnpm's junction layout confuses CMake. Use the flat install from step 3 (delete `node_modules` and `apps\mobile\android`, `pnpm install`, rebuild). |
+| `ninja: error: … Filename too long` / other CMake errors | Enable long paths (step 1.4) and delete `apps/mobile/android` before retrying. |
 | Gradle error in `voult-native` (Kotlin) | Expected possibility — send the full error (section 8). |
 | `Could not find com.lambdapioneer.argon2kt` | Check internet/proxy; the library comes from Maven Central. |
 | App opens but is white / "Unable to load script" | Metro isn't running or the phone can't reach it: `pnpm dev` and `adb reverse tcp:8081 tcp:8081`. |

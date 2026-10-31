@@ -16,3 +16,8 @@ coverage
 test-results
 playwright-report
 shots
+
+# Gradle / CMake outputs (also created inside the local native module)
+.gradle
+.cxx
+/apps/mobile/modules/*/android/build
