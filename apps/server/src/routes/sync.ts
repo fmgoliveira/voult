@@ -15,7 +15,7 @@ const vaultBody = z.object({
 });
 const itemBody = z.object({
   vaultId: id,
-  type: z.enum(['login', 'note', 'card', 'identity', 'totp']),
+  type: z.enum(['login', 'note', 'card', 'identity', 'totp', 'sshKey', 'sshHost']),
   wrappedItemKey: blob(4096),
   ciphertext: blob(1_048_576),
   /** Client-chosen version (bound into the AAD); must increase on every write. */

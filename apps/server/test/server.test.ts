@@ -2,6 +2,7 @@ import { serve } from '@hono/node-server';
 import {
   decryptItem,
   deriveLogin,
+  itemSchema,
   newId,
   openVault,
   resolveConflict,
@@ -231,6 +232,37 @@ describe('sync', () => {
     const inc = await a.call('GET', `/sync?since=${rev + 1}`);
     expect(inc.json.items.map((i: { rev: number }) => i.rev)).toEqual([upd.json.rev]);
     expect((await a.call('GET', '/sync?since=-1')).status).toBe(400);
+  });
+
+  it('accepts and syncs ssh key and ssh host items', async () => {
+    const { a, s, vaultId, vaultKey, rev } = await setup();
+    const key = itemSchema.parse({
+      type: 'sshKey',
+      title: 'k',
+      keyType: 'ed25519',
+      privateKey: 'p',
+      publicKey: 'ssh-ed25519 AAAA',
+      fingerprint: 'SHA256:x',
+      createdAt: 1,
+      updatedAt: 1,
+    });
+    const host = itemSchema.parse({
+      type: 'sshHost',
+      title: 'h',
+      alias: 'box',
+      hostname: 'example.com',
+      auth: 'key',
+      createdAt: 1,
+      updatedAt: 1,
+    });
+    expect((await a.putItem(vaultId, vaultKey, newId(), key, 1, 0)).status).toBe(200);
+    expect((await a.putItem(vaultId, vaultKey, newId(), host, 1, 0)).status).toBe(200);
+    const full = await a.call('GET', '/sync?since=0');
+    const { vaultKey: vk } = openVault(s.acc.accountKey, full.json.vaults[0]);
+    const types = full.json.items
+      .map((r: { id: string; version: number }) => decryptItem(vk, r.id, r.version, r as never).type)
+      .sort();
+    expect(types).toEqual(['sshHost', 'sshKey']);
   });
 
   it('returns 409 with the current record on a stale If-Match', async () => {

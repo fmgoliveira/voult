@@ -85,9 +85,40 @@ describe('normalizeServerUrl', () => {
   });
 });
 
+describe('ssh search', () => {
+  it('matches keys by comment/fingerprint and hosts by alias/hostname/user', () => {
+    const key: ItemView = {
+      id: 'k',
+      vaultId: 'v',
+      item: { ...blankItem('sshKey'), title: 'Deploy', comment: 'me@laptop', fingerprint: 'SHA256:abc' } as never,
+      deletedAt: null,
+      dirty: false,
+    };
+    const host: ItemView = {
+      id: 'h',
+      vaultId: 'v',
+      item: {
+        ...blankItem('sshHost'),
+        title: 'Prod',
+        alias: 'prod-1',
+        hostname: 'box.example.com',
+        username: 'deploy',
+      } as never,
+      deletedAt: null,
+      dirty: false,
+    };
+    expect(matchesText(key, 'laptop')).toBe(true);
+    expect(matchesText(key, 'sha256:abc')).toBe(true);
+    expect(matchesText(host, 'prod-1')).toBe(true);
+    expect(matchesText(host, 'example.com')).toBe(true);
+    expect(matchesText(host, 'deploy')).toBe(true);
+    expect(matchesText(host, 'nope')).toBe(false);
+  });
+});
+
 describe('blankItem', () => {
   it('produces a valid-shaped empty item for every type', () => {
-    for (const type of ['login', 'note', 'card', 'identity', 'totp'] as const) {
+    for (const type of ['login', 'note', 'card', 'identity', 'totp', 'sshKey', 'sshHost'] as const) {
       const i = blankItem(type);
       expect(i.type).toBe(type);
       expect(i.title).toBe('');

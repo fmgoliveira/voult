@@ -24,6 +24,10 @@ function haystack(v: ItemView): string[] {
     parts.push(i.holder);
   } else if (i.type === 'totp') {
     parts.push(i.totp.issuer, i.totp.account);
+  } else if (i.type === 'sshKey') {
+    parts.push(i.comment, i.fingerprint);
+  } else if (i.type === 'sshHost') {
+    parts.push(i.alias, i.hostname, i.username);
   }
   return parts.map((p) => p.toLowerCase());
 }

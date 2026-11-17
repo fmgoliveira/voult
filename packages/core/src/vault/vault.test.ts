@@ -33,6 +33,41 @@ describe('schemas', () => {
     const t = itemSchema.parse({ ...base, type: 'totp', totp: { secret: 'JBSWY3DPEHPK3PXP' } });
     expect(t.type === 'totp' && t.totp).toMatchObject({ algorithm: 'SHA1', digits: 6, period: 30 });
   });
+  it('applies defaults for ssh keys and hosts', () => {
+    const base = { title: 't', createdAt: 1, updatedAt: 1 };
+    const k = itemSchema.parse({
+      ...base,
+      type: 'sshKey',
+      keyType: 'ed25519',
+      privateKey: 'p',
+      publicKey: 'ssh-ed25519 AAAA',
+      fingerprint: 'SHA256:x',
+    });
+    expect(k.type === 'sshKey' && k).toMatchObject({
+      comment: '',
+      passphrase: '',
+      agent: { enabled: true, confirm: false },
+    });
+    const h = itemSchema.parse({
+      ...base,
+      type: 'sshHost',
+      alias: 'box',
+      hostname: 'example.com',
+      auth: 'key',
+    });
+    expect(h.type === 'sshHost' && h).toMatchObject({
+      port: 22,
+      username: '',
+      password: '',
+      passwordHistory: [],
+      proxyJump: '',
+      extraOptions: '',
+    });
+    expect(() => itemSchema.parse({ ...base, type: 'sshKey', keyType: 'dsa' })).toThrow();
+    expect(() =>
+      itemSchema.parse({ ...base, type: 'sshHost', alias: 'a', hostname: 'h', auth: 'key', port: 0 }),
+    ).toThrow();
+  });
   it('rejects unknown types and bad totp values', () => {
     expect(() => itemSchema.parse({ type: 'nope' })).toThrow();
     expect(() =>

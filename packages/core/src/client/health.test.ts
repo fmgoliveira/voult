@@ -50,6 +50,21 @@ describe('analyzeHealth', () => {
   });
 });
 
+describe('analyzeHealth with ssh hosts', () => {
+  it('includes the password of an ssh host', () => {
+    const host: ItemView = {
+      id: 'h',
+      vaultId: 'v',
+      item: { ...blankItem('sshHost'), title: 'h', password: '123456' } as never,
+      deletedAt: null,
+      dirty: false,
+    };
+    const r = analyzeHealth([host], Date.now());
+    expect(r.total).toBe(1);
+    expect(r.weak.map((v) => v.id)).toEqual(['h']);
+  });
+});
+
 describe('breach check (HIBP k-anonymity)', () => {
   it('sends only a 5 character prefix and finds matches by suffix', async () => {
     expect(sha1Hex('password')).toBe('5BAA61E4C9B93F3F0682250B6CF8331B7EE68FD8');
