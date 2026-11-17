@@ -235,7 +235,7 @@ describe('sync', () => {
   });
 
   it('accepts and syncs ssh key and ssh host items', async () => {
-    const { a, s, vaultId, vaultKey, rev } = await setup();
+    const { a, s, vaultId, vaultKey } = await setup();
     const key = itemSchema.parse({
       type: 'sshKey',
       title: 'k',
@@ -260,7 +260,9 @@ describe('sync', () => {
     const full = await a.call('GET', '/sync?since=0');
     const { vaultKey: vk } = openVault(s.acc.accountKey, full.json.vaults[0]);
     const types = full.json.items
-      .map((r: { id: string; version: number }) => decryptItem(vk, r.id, r.version, r as never).type)
+      .map(
+        (r: { id: string; version: number }) => decryptItem(vk, r.id, r.version, r as never).type,
+      )
       .sort();
     expect(types).toEqual(['sshHost', 'sshKey']);
   });

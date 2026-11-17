@@ -39,14 +39,13 @@ if (exe) {
 
   const out = path.join(dist, process.platform === 'win32' ? 'voult.exe' : 'voult');
   copyFileSync(process.execPath, out);
-  const postject = path.join(root, 'node_modules/postject/dist/cli.js');
-  const resolved = (await import('node:module')).createRequire(import.meta.url).resolve(
-    'postject/dist/cli.js',
-  );
+  const resolved = (await import('node:module'))
+    .createRequire(import.meta.url)
+    .resolve('postject/dist/cli.js');
   execFileSync(
     process.execPath,
     [
-      resolved ?? postject,
+      resolved,
       out,
       'NODE_SEA_BLOB',
       blob,

@@ -11,7 +11,6 @@ import {
   SshKeyError,
   takenAliases,
   validateAlias,
-  type AliasError,
   type SshHostItem,
   type SshKeyItem,
 } from '@voult/core';
