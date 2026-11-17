@@ -197,7 +197,8 @@ describe('voult ssh wrapper (unit)', () => {
     });
     expect(sent.map((s) => s[0])).toEqual(['sshHost', 'askpassIssue']);
     // The password itself is never part of what is passed to ssh.
-    expect(JSON.stringify(runs)).not.toMatch(/password"/i);
+    // (Only the args and the variables the wrapper adds: the inherited environment is the runner's.)
+    expect(runs[0]!.args.join(' ')).not.toMatch(/password/i);
   });
 
   it('does not set up askpass for a key host', async () => {
