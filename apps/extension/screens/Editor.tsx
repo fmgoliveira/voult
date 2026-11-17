@@ -7,6 +7,7 @@ import {
   itemSchema,
   pushPasswordHistory,
   siteNameFromUrl,
+  sshDraftProblem,
   type Item,
   type ItemType,
   type LoginItem,
@@ -27,7 +28,7 @@ import {
 import { useAsyncAction } from '../lib/hooks';
 import { useNav } from '../lib/nav';
 import { parseTotpInput } from '@voult/core';
-import { SshHostFields, SshKeyFields, validateSshDraft } from './SshFields';
+import { SshHostFields, SshKeyFields } from './SshFields';
 import { saveItem, saveLoginEdit, type ItemView, type VaultView } from '../lib/vault';
 
 const TYPE_LABEL: Record<ItemType, string> = {
@@ -233,7 +234,7 @@ export function Editor({
           next = { ...next, totp: t };
         }
         if (next.type === 'sshHost' || next.type === 'sshKey') {
-          const problem = validateSshDraft(next, items, existing?.id);
+          const problem = sshDraftProblem(next, items, existing?.id);
           if (problem) throw new Error(problem);
         }
         if (

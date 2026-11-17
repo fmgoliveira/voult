@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState, type ReactNode } from 'react';
 import { Linking, Pressable, ScrollView, Text, View } from 'react-native';
+import { sshCommand } from '@voult/core';
 import { useApp } from '../../../src/lib/app-store';
 import { copySecret } from '../../../src/lib/clipboard';
 import { getRuntime } from '../../../src/lib/runtime';
@@ -16,6 +17,7 @@ import {
 } from '../../../src/ui/kit';
 import { ConfirmSheet } from '../../../src/ui/controls';
 import { TYPE_LABEL, TotpCode } from '../../../src/ui/items';
+import { KEY_TYPE_LABEL, SshHostActions, SshKeyActions } from '../../../src/ui/ssh';
 import { useTheme } from '../../../src/ui/theme';
 
 function Line({
@@ -98,7 +100,8 @@ function Line({
 export default function ItemDetail() {
   const { c } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const view = useApp((s) => s.items.find((i) => i.id === id));
+  const items = useApp((s) => s.items);
+  const view = items.find((i) => i.id === id);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [removePasskey, setRemovePasskey] = useState<string | null>(null);
   if (!view) {
@@ -221,6 +224,33 @@ export default function ItemDetail() {
               <Line label="Birthday" value={i.birthday} last />
             </>
           )}
+          {i.type === 'sshKey' && (
+            <>
+              <Line label="Type" value={KEY_TYPE_LABEL[i.keyType]} />
+              <Line label="Fingerprint" value={i.fingerprint} mono />
+              <Line label="Comment" value={i.comment} />
+              <Line label="Public key" value={i.publicKey} mono />
+              <Line label="Private key" value={i.privateKey} secret last />
+            </>
+          )}
+          {i.type === 'sshHost' && (
+            <>
+              <Line label="Alias" value={i.alias} mono />
+              <Line label="Host" value={i.hostname} />
+              <Line label="Port" value={String(i.port)} />
+              <Line label="User" value={i.username} />
+              <Line label="Command" value={sshCommand(i)} mono />
+              <Line label="Password" value={i.password} secret />
+              {i.keyItemId ? (
+                <Line
+                  label="Key"
+                  value={items.find((x) => x.id === i.keyItemId)?.item.title || 'Key not found'}
+                />
+              ) : null}
+              <Line label="Jump host" value={i.proxyJump} />
+              <Line label="Extra options" value={i.extraOptions} mono last />
+            </>
+          )}
           {i.type === 'totp' && (
             <>
               <Line label="Issuer" value={i.totp.issuer} />
@@ -242,6 +272,9 @@ export default function ItemDetail() {
             </Text>
           </Glass>
         ) : null}
+
+        {i.type === 'sshKey' && !trashed ? <SshKeyActions item={i} /> : null}
+        {i.type === 'sshHost' && !trashed ? <SshHostActions item={i} /> : null}
 
         {i.type === 'login' && i.passkeys.length > 0 && (
           <Glass style={{ padding: 16, gap: 8 }}>

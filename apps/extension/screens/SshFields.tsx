@@ -1,6 +1,7 @@
 import {
   generateEd25519,
   generatePassword,
+  aliasMessage,
   hostUsesKey,
   hostUsesPassword,
   parsePrivateKey,
@@ -18,29 +19,6 @@ import { Eye, EyeOff, Upload, Wand2 } from 'lucide-react';
 import { useState } from 'react';
 import { Button, Checkbox, Field, IconButton, Input, Select } from '../components/ui';
 import type { ItemView } from '../lib/vault';
-
-const ALIAS_MESSAGE: Record<AliasError, string> = {
-  empty: 'Enter an alias, the short name you type after ssh.',
-  invalid: 'Use only letters, digits, dot, dash and underscore (no leading dash).',
-  duplicate: 'Another host already uses this alias.',
-};
-export const aliasMessage = (e: AliasError): string => ALIAS_MESSAGE[e];
-
-/** Returns an error message for an invalid ssh item draft, or null. */
-export function validateSshDraft(
-  draft: SshKeyItem | SshHostItem,
-  items: ItemView[],
-  selfId?: string,
-): string | null {
-  if (draft.type === 'sshKey') {
-    return draft.privateKey ? null : 'Generate or import a private key first.';
-  }
-  const alias = validateAlias(draft.alias, takenAliases(items, selfId));
-  if (alias) return aliasMessage(alias);
-  if (!draft.hostname.trim()) return 'Enter the host name or address.';
-  if (hostUsesKey(draft) && !draft.keyItemId) return 'Choose which key this host uses.';
-  return null;
-}
 
 function Secret({
   label,

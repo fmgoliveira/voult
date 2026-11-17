@@ -41,3 +41,26 @@ export function sshKeyChoices(items: ItemView[]): (ItemView & { item: SshKeyItem
 
 export const hostUsesKey = (h: Pick<SshHostItem, 'auth'>): boolean => h.auth !== 'password';
 export const hostUsesPassword = (h: Pick<SshHostItem, 'auth'>): boolean => h.auth !== 'key';
+
+const ALIAS_MESSAGE: Record<AliasError, string> = {
+  empty: 'Enter an alias, the short name you type after ssh.',
+  invalid: 'Use only letters, digits, dot, dash and underscore (no leading dash).',
+  duplicate: 'Another host already uses this alias.',
+};
+export const aliasMessage = (e: AliasError): string => ALIAS_MESSAGE[e];
+
+/** The first reason an ssh key/host draft cannot be saved, or null when it is fine. */
+export function sshDraftProblem(
+  draft: SshKeyItem | SshHostItem,
+  items: ItemView[],
+  selfId?: string,
+): string | null {
+  if (draft.type === 'sshKey') {
+    return draft.privateKey ? null : 'Generate or import a private key first.';
+  }
+  const alias = validateAlias(draft.alias, takenAliases(items, selfId));
+  if (alias) return aliasMessage(alias);
+  if (!draft.hostname.trim()) return 'Enter the host name or address.';
+  if (hostUsesKey(draft) && !draft.keyItemId) return 'Choose which key this host uses.';
+  return null;
+}

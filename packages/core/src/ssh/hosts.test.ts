@@ -2,10 +2,12 @@ import { describe, expect, it } from 'vitest';
 import { blankItem } from '../client/blank-item';
 import type { ItemView } from '../client/types';
 import {
+  aliasMessage,
   hostUsesKey,
   hostUsesPassword,
   sshCommand,
   sshKeyChoices,
+  sshDraftProblem,
   sshKeyFilename,
   takenAliases,
   validateAlias,
@@ -83,5 +85,27 @@ describe('helpers', () => {
       hostUsesKey({ auth: 'keyAndPassword' }),
       hostUsesPassword({ auth: 'keyAndPassword' }),
     ]).toEqual([true, true]);
+  });
+});
+
+describe('sshDraftProblem', () => {
+  const key = { ...blankItem('sshKey'), privateKey: 'x' };
+  const host = { ...blankItem('sshHost'), alias: 'box', hostname: 'h.io', keyItemId: 'k' };
+  it('accepts a complete key and host', () => {
+    expect(sshDraftProblem(key as never, [])).toBeNull();
+    expect(sshDraftProblem(host as never, [])).toBeNull();
+  });
+  it('explains what is missing', () => {
+    expect(sshDraftProblem({ ...key, privateKey: '' } as never, [])).toMatch(/private key/);
+    expect(sshDraftProblem({ ...host, alias: '' } as never, [])).toBe(aliasMessage('empty'));
+    expect(sshDraftProblem({ ...host, alias: 'a b' } as never, [])).toBe(aliasMessage('invalid'));
+    expect(sshDraftProblem({ ...host, hostname: ' ' } as never, [])).toMatch(/host name/);
+    expect(sshDraftProblem({ ...host, keyItemId: undefined } as never, [])).toMatch(/key/);
+    expect(
+      sshDraftProblem({ ...host, auth: 'password', keyItemId: undefined } as never, []),
+    ).toBeNull();
+    const taken = [view('other', { ...blankItem('sshHost'), alias: 'box' })];
+    expect(sshDraftProblem(host as never, taken)).toBe(aliasMessage('duplicate'));
+    expect(sshDraftProblem(host as never, taken, 'other')).toBeNull();
   });
 });

@@ -19,7 +19,7 @@ import { Sheet } from '../../../src/ui/controls';
 import { ItemRow, TYPE_ICON, TYPE_LABEL } from '../../../src/ui/items';
 import { useTheme } from '../../../src/ui/theme';
 
-const TYPES: ItemType[] = ['login', 'note', 'card', 'identity', 'totp'];
+const TYPES: ItemType[] = ['login', 'note', 'card', 'identity', 'totp', 'sshKey', 'sshHost'];
 const SORTS: { key: SortKey; label: string }[] = [
   { key: 'title', label: 'Name' },
   { key: 'updated', label: 'Edited' },
