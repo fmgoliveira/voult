@@ -56,6 +56,7 @@ export class Env {
   async profile(name: string) {
     const ctx = await chromium.launchPersistentContext(path.join(this.tmp, name), {
       channel: 'chromium',
+      executablePath: process.env.PW_CHROMIUM,
       headless: true,
       // Sharper screenshots for the docs (SHOTS=1); tests keep the default.
       deviceScaleFactor: process.env.SHOTS ? 2 : 1,

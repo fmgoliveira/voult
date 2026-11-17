@@ -5,6 +5,7 @@ import {
   identifierSuggestions,
   inferIdentifier,
   itemSchema,
+  pushPasswordHistory,
   siteNameFromUrl,
   type Item,
   type ItemType,
@@ -26,6 +27,7 @@ import {
 import { useAsyncAction } from '../lib/hooks';
 import { useNav } from '../lib/nav';
 import { parseTotpInput } from '@voult/core';
+import { SshHostFields, SshKeyFields, validateSshDraft } from './SshFields';
 import { saveItem, saveLoginEdit, type ItemView, type VaultView } from '../lib/vault';
 
 const TYPE_LABEL: Record<ItemType, string> = {
@@ -34,6 +36,8 @@ const TYPE_LABEL: Record<ItemType, string> = {
   card: 'Card',
   identity: 'Identity',
   totp: '2FA code',
+  sshKey: 'SSH key',
+  sshHost: 'SSH host',
 };
 export const typeLabel = (t: ItemType) => TYPE_LABEL[t];
 
@@ -228,7 +232,28 @@ export function Editor({
           if (!t) throw new Error('Enter the secret key or an otpauth:// link.');
           next = { ...next, totp: t };
         }
-        if (!next.title.trim()) throw new Error('Give it a title.');
+        if (next.type === 'sshHost' || next.type === 'sshKey') {
+          const problem = validateSshDraft(next, items, existing?.id);
+          if (problem) throw new Error(problem);
+        }
+        if (
+          next.type === 'sshHost' &&
+          existing?.item.type === 'sshHost' &&
+          next.password !== existing.item.password
+        ) {
+          next = {
+            ...next,
+            passwordHistory: pushPasswordHistory(
+              existing.item.passwordHistory,
+              existing.item.password,
+              Date.now(),
+            ),
+          };
+        }
+        if (!next.title.trim()) {
+          if (next.type === 'sshHost' && next.alias) next = { ...next, title: next.alias };
+          else throw new Error('Give it a title.');
+        }
         const parsed = itemSchema.safeParse(next);
         if (!parsed.success) throw new Error('Some fields are invalid.');
         if (!vaultId) throw new Error('No vault available yet. Wait for sync to finish.');
@@ -451,6 +476,11 @@ export function Editor({
             <Text label="Address" value={d.address} onChange={(v) => patch({ address: v })} />
             <Text label="Birthday" value={d.birthday} onChange={(v) => patch({ birthday: v })} />
           </>
+        )}
+
+        {draft.type === 'sshKey' && <SshKeyFields draft={draft} patch={patch} />}
+        {draft.type === 'sshHost' && (
+          <SshHostFields draft={draft} patch={patch} items={items} selfId={existing?.id} />
         )}
 
         <Field label="Notes">

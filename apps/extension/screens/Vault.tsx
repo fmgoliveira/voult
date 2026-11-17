@@ -2,6 +2,9 @@ import {
   hostOf,
   matchLogin,
   queryItems,
+  serialisePrivateKey,
+  sshCommand,
+  sshKeyFilename,
   type Item,
   type ItemType,
   type SortKey,
@@ -48,9 +51,11 @@ import {
   type ItemView,
   type VaultView,
 } from '../lib/vault';
+import { downloadBytes } from '../lib/recovery-kit';
 import { Editor, typeLabel } from './Editor';
+import { keyTypeLabel } from './SshFields';
 
-const TYPES: ItemType[] = ['login', 'note', 'card', 'identity', 'totp'];
+const TYPES: ItemType[] = ['login', 'note', 'card', 'identity', 'totp', 'sshKey', 'sshHost'];
 
 function subtitle(i: Item): string {
   switch (i.type) {
@@ -62,6 +67,10 @@ function subtitle(i: Item): string {
       return i.fullName || i.email;
     case 'totp':
       return i.totp.issuer || i.totp.account;
+    case 'sshKey':
+      return i.comment || i.fingerprint;
+    case 'sshHost':
+      return i.username ? `${i.username}@${i.hostname}` : i.hostname;
     default:
       return '';
   }
@@ -366,7 +375,44 @@ function Line({
   );
 }
 
-function Detail({ v }: { v: ItemView }) {
+function KeyExport({ item }: { item: Extract<Item, { type: 'sshKey' }> }) {
+  const [pass, setPass] = useState(item.passphrase);
+  const [error, setError] = useState<string | null>(null);
+  const download = () => {
+    try {
+      const text = serialisePrivateKey(item.privateKey, item.comment, pass);
+      downloadBytes(new TextEncoder().encode(text), sshKeyFilename(item.keyType), 'text/plain');
+      setError(null);
+    } catch {
+      setError('Could not export this key.');
+    }
+  };
+  return (
+    <Card className="space-y-2 p-3.5">
+      <div className="text-[11px] font-semibold tracking-wide text-muted">Download private key</div>
+      <label className="block text-xs text-muted">
+        Passphrase (leave empty to download it unencrypted)
+        <input
+          type="password"
+          autoComplete="off"
+          value={pass}
+          onChange={(e) => setPass(e.target.value)}
+          className="mt-1 h-9 w-full rounded-xl border border-border bg-surface px-3 font-mono text-sm text-text"
+        />
+      </label>
+      <Button variant="secondary" className="w-full" onClick={download}>
+        Download {sshKeyFilename(item.keyType)}
+      </Button>
+      {error && (
+        <p role="alert" className="text-xs text-danger">
+          {error}
+        </p>
+      )}
+    </Card>
+  );
+}
+
+function Detail({ v, items }: { v: ItemView; items: ItemView[] }) {
   const { back, open } = useNav();
   const i = v.item;
   const trashed = v.deletedAt !== null;
@@ -463,6 +509,43 @@ function Detail({ v }: { v: ItemView }) {
               <Line label="Birthday" value={i.birthday} />
             </>
           )}
+          {i.type === 'sshKey' && (
+            <>
+              <Line label="Type" value={keyTypeLabel(i.keyType)} />
+              <Line label="Fingerprint" value={i.fingerprint} mono />
+              <Line label="Comment" value={i.comment} />
+              <Line label="Public key" value={i.publicKey} mono />
+              <Line label="Private key" value={i.privateKey} secret />
+              <Line
+                label="SSH agent"
+                value={
+                  i.agent.enabled
+                    ? i.agent.confirm
+                      ? 'Enabled, asks before every signature'
+                      : 'Enabled'
+                    : 'Off'
+                }
+              />
+            </>
+          )}
+          {i.type === 'sshHost' && (
+            <>
+              <Line label="Alias" value={i.alias} mono />
+              <Line label="Host" value={i.hostname} />
+              <Line label="Port" value={String(i.port)} />
+              <Line label="User" value={i.username} />
+              <Line label="Command" value={sshCommand(i)} mono />
+              <Line label="Password" value={i.password} secret />
+              {i.keyItemId && (
+                <Line
+                  label="Key"
+                  value={items.find((x) => x.id === i.keyItemId)?.item.title || 'Key not found'}
+                />
+              )}
+              <Line label="Jump host" value={i.proxyJump} />
+              <Line label="Extra options" value={i.extraOptions} mono />
+            </>
+          )}
           {i.type === 'totp' && (
             <>
               <Line label="Issuer" value={i.totp.issuer} />
@@ -482,6 +565,8 @@ function Detail({ v }: { v: ItemView }) {
             </p>
           </Card>
         )}
+
+        {i.type === 'sshKey' && !trashed && <KeyExport item={i} />}
 
         {i.type === 'login' && i.passkeys.length > 0 && (
           <Card className="p-3.5">
@@ -617,7 +702,7 @@ export function VaultTab({ items, vaults }: { items: ItemView[]; vaults: VaultVi
     return view.name === 'edit' ? (
       <Editor type={v.item.type} existing={v} vaults={vaults} items={items} />
     ) : (
-      <Detail v={v} />
+      <Detail v={v} items={items} />
     );
   }
   return <List items={items} vaults={vaults} />;

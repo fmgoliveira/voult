@@ -65,7 +65,14 @@ describe('schemas', () => {
     });
     expect(() => itemSchema.parse({ ...base, type: 'sshKey', keyType: 'dsa' })).toThrow();
     expect(() =>
-      itemSchema.parse({ ...base, type: 'sshHost', alias: 'a', hostname: 'h', auth: 'key', port: 0 }),
+      itemSchema.parse({
+        ...base,
+        type: 'sshHost',
+        alias: 'a',
+        hostname: 'h',
+        auth: 'key',
+        port: 0,
+      }),
     ).toThrow();
   });
   it('rejects unknown types and bad totp values', () => {

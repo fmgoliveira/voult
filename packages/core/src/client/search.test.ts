@@ -90,7 +90,12 @@ describe('ssh search', () => {
     const key: ItemView = {
       id: 'k',
       vaultId: 'v',
-      item: { ...blankItem('sshKey'), title: 'Deploy', comment: 'me@laptop', fingerprint: 'SHA256:abc' } as never,
+      item: {
+        ...blankItem('sshKey'),
+        title: 'Deploy',
+        comment: 'me@laptop',
+        fingerprint: 'SHA256:abc',
+      } as never,
       deletedAt: null,
       dirty: false,
     };
@@ -118,7 +123,15 @@ describe('ssh search', () => {
 
 describe('blankItem', () => {
   it('produces a valid-shaped empty item for every type', () => {
-    for (const type of ['login', 'note', 'card', 'identity', 'totp', 'sshKey', 'sshHost'] as const) {
+    for (const type of [
+      'login',
+      'note',
+      'card',
+      'identity',
+      'totp',
+      'sshKey',
+      'sshHost',
+    ] as const) {
       const i = blankItem(type);
       expect(i.type).toBe(type);
       expect(i.title).toBe('');

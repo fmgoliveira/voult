@@ -63,6 +63,8 @@ export const typeColors = {
   card: ['#10b981', '#0ea371'],
   identity: ['#0ea5e9', '#0b8fcb'],
   totp: ['#8b5cf6', '#7646e0'],
+  sshKey: ['#64748b', '#475569'],
+  sshHost: ['#14b8a6', '#0d9488'],
 } as const;
 
 /** Stable avatar gradients for letter avatars (picked by hashing the title). */

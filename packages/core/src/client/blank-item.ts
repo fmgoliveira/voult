@@ -54,7 +54,7 @@ export function blankItem(type: ItemType): Item {
           account: '',
         },
       };
-      case 'sshKey':
+    case 'sshKey':
       return {
         ...base,
         type,
