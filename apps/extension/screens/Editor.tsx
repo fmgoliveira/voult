@@ -26,6 +26,7 @@ import {
   TypeTile,
 } from '../components/ui';
 import { useAsyncAction } from '../lib/hooks';
+import { useDraft } from '../lib/draft';
 import { useNav } from '../lib/nav';
 import { parseTotpInput } from '@voult/core';
 import { SshHostFields, SshKeyFields } from './SshFields';
@@ -183,9 +184,16 @@ export function Editor({
   items: ItemView[];
 }) {
   const { back, open } = useNav();
-  const [draft, setDraft] = useState<Item>(() => existing?.item ?? blankItem(type));
-  const [vaultId, setVaultId] = useState(existing?.vaultId ?? vaults[0]?.id ?? '');
-  const [totpText, setTotpText] = useState(() => {
+  const dk = `editor.${existing?.id ?? `new.${type}`}`;
+  const [draft, setDraft, clearDraft, hydrated] = useDraft<Item>(
+    `${dk}.item`,
+    () => existing?.item ?? blankItem(type),
+  );
+  const [vaultId, setVaultId, clearVault] = useDraft(
+    `${dk}.vault`,
+    existing?.vaultId ?? vaults[0]?.id ?? '',
+  );
+  const [totpText, setTotpText, clearTotp] = useDraft(`${dk}.totp`, () => {
     const t =
       existing?.item.type === 'login'
         ? existing.item.totp
@@ -198,7 +206,7 @@ export function Editor({
 
   // Creating a login while looking at a website: start from that site's name and address.
   useEffect(() => {
-    if (existing || type !== 'login') return;
+    if (!hydrated || existing || type !== 'login') return;
     let live = true;
     void browser.tabs
       .query({ active: true, lastFocusedWindow: true, windowType: 'normal' })
@@ -218,10 +226,16 @@ export function Editor({
     return () => {
       live = false;
     };
-  }, [existing, type]);
+  }, [existing, type, hydrated]);
 
   const patch = (p: Record<string, unknown>) => setDraft((d) => ({ ...d, ...p }) as Item);
   const d = draft as Item & Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+
+  const discard = () => {
+    clearDraft();
+    clearVault();
+    clearTotp();
+  };
 
   const save = () =>
     void run(
@@ -265,6 +279,7 @@ export function Editor({
         } else {
           id = await saveItem(existing?.vaultId ?? vaultId, parsed.data, existing?.id);
         }
+        discard();
         open({ name: 'detail', id });
       },
       (e) =>
@@ -291,7 +306,11 @@ export function Editor({
         <Button
           type="button"
           variant="ghost"
-          onClick={() => (existing ? open({ name: 'detail', id: existing.id }) : back())}
+          onClick={() => {
+            discard();
+            if (existing) open({ name: 'detail', id: existing.id });
+            else back();
+          }}
         >
           Cancel
         </Button>

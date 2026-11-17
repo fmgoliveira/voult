@@ -2,6 +2,7 @@ import { Download, KeyRound, Lock, Mail, Server, ShieldAlert } from 'lucide-reac
 import { useState } from 'react';
 import { Button, Checkbox, ErrorText, Field, Input, Logo, OtpInput } from '../components/ui';
 import { ApiError } from '../lib/api';
+import { clearDrafts, useDraft } from '../lib/draft';
 import { useAsyncAction } from '../lib/hooks';
 import { RestoreWizard } from './Backup';
 import { buildRecoveryKitPdf, downloadBytes } from '../lib/recovery-kit';
@@ -59,11 +60,11 @@ const friendly = (e: unknown): string => {
 };
 
 export function Welcome() {
-  const [mode, setMode] = useState<'create' | 'signin' | 'restore'>('create');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirm, setConfirm] = useState('');
-  const [serverUrl, setServerUrl] = useState(DEFAULT_SERVER_URL);
+  const [mode, setMode] = useDraft<'create' | 'signin' | 'restore'>('welcome.mode', 'create');
+  const [email, setEmail] = useDraft('welcome.email', '');
+  const [password, setPassword] = useDraft('welcome.password', '');
+  const [confirm, setConfirm] = useDraft('welcome.confirm', '');
+  const [serverUrl, setServerUrl] = useDraft('welcome.serverUrl', DEFAULT_SERVER_URL);
   const { busy, error, run, setError } = useAsyncAction();
 
   const submit = (e: React.FormEvent) => {
@@ -77,6 +78,7 @@ export function Welcome() {
       } else {
         await signIn({ email, password, serverUrl });
       }
+      void clearDrafts('welcome.');
     }, friendly);
   };
 
@@ -249,14 +251,17 @@ export function RecoveryKit({
 }
 
 export function Unlock({ email, pin }: { email: string; pin: boolean }) {
-  const [password, setPassword] = useState('');
+  const [password, setPassword] = useDraft('unlock.password', '');
   const [pinCode, setPinCode] = useState('');
   const [usePin, setUsePin] = useState(pin);
   const { busy, error, run, setError } = useAsyncAction();
 
   const submitPassword = (e: React.FormEvent) => {
     e.preventDefault();
-    void run(() => unlockWithPassword(password), friendly);
+    void run(async () => {
+      await unlockWithPassword(password);
+      void clearDrafts('unlock.');
+    }, friendly);
   };
   const submitPin = (code: string) => {
     void run(async () => {
@@ -335,7 +340,7 @@ export function Unlock({ email, pin }: { email: string; pin: boolean }) {
 }
 
 export function Reauth({ email }: { email: string }) {
-  const [password, setPassword] = useState('');
+  const [password, setPassword] = useDraft('reauth.password', '');
   const { busy, error, run } = useAsyncAction();
   return (
     <Shell
@@ -345,7 +350,10 @@ export function Reauth({ email }: { email: string }) {
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          void run(() => reauthenticate(password), friendly);
+          void run(async () => {
+            await reauthenticate(password);
+            void clearDrafts('reauth.');
+          }, friendly);
         }}
         className="space-y-3"
       >
