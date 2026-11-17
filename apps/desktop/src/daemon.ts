@@ -27,6 +27,8 @@ export interface DaemonOptions {
   watchSession?: boolean;
   /** Hook for features that need the runtime (SSH agent, ssh config). */
   extend?: (runtime: Runtime) => {
+    /** Startup work that must succeed (e.g. the agent pipe being free) before the daemon is up. */
+    ready?: Promise<unknown>;
     handlers?: Record<string, (args: Record<string, unknown>) => Promise<unknown>>;
     afterSync?: Parameters<typeof createRuntime>[0]['afterSync'];
     stop?: () => Promise<void> | void;
@@ -47,6 +49,13 @@ export async function startDaemon(opts: DaemonOptions): Promise<Daemon> {
     afterSync: (items) => hooks.current?.afterSync?.(items),
   });
   const extension = (hooks.current = opts.extend?.(runtime));
+
+  try {
+    await extension?.ready;
+  } catch (e) {
+    await extension?.stop?.();
+    throw e;
+  }
 
   const handler = createHandlers({ runtime, paths, extra: extension?.handlers });
   const server: net.Server = await serveIpc(pipe, token, handler);

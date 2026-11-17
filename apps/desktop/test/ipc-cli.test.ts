@@ -103,6 +103,9 @@ describe('daemon + cli end to end (over a real named pipe)', () => {
       promptPassword: async () => password,
       readStdinLine: async () => password,
       runAgent: async () => undefined,
+      installAgent: async () => undefined,
+      uninstallAgent: async () => undefined,
+      doctor: async () => [],
     };
     const run = (...argv: string[]) => runCli(argv, deps, buildProgram(deps));
     try {

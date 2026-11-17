@@ -4,6 +4,9 @@ packages:
 allowBuilds:
   esbuild: true
   cbor-extract: false
+  # Optional native speed-ups for the ssh2 test dependency; its pure-JS path is used.
+  ssh2: false
+  cpu-features: false
 minimumReleaseAgeExclude:
   - eslint@10.14.0
 nodeLinker: hoisted

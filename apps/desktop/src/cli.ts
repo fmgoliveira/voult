@@ -1,8 +1,10 @@
 import { Command } from 'commander';
-import { send as realSend } from './client';
+import { diagnose, realProbes, type Check } from './agent/doctor';
+import { installTask, uninstallTask } from './agent/install';
+import { selfCommand, send as realSend } from './client';
 import type { Config } from './config';
 import { IpcError } from './ipc';
-import type { Paths } from './paths';
+import { AGENT_PIPE, type Paths } from './paths';
 import { promptHidden, readLineFromStdin } from './prompt';
 import type { Status } from './runtime';
 
@@ -20,6 +22,9 @@ export interface CliDeps {
   readStdinLine: () => Promise<string>;
   /** Run the agent in this process until it is stopped. */
   runAgent: () => Promise<void>;
+  installAgent: () => Promise<void>;
+  uninstallAgent: () => Promise<void>;
+  doctor: () => Promise<Check[]>;
 }
 
 export function defaultDeps(paths: Paths): CliDeps {
@@ -31,6 +36,22 @@ export function defaultDeps(paths: Paths): CliDeps {
     promptPassword: promptHidden,
     readStdinLine: readLineFromStdin,
     runAgent: async () => (await import('./run-agent')).runAgent(paths),
+    async installAgent() {
+      const { command, args } = selfCommand(['agent', 'run']);
+      await installTask(command, args);
+    },
+    uninstallAgent: async () => void (await uninstallTask()),
+    doctor: () =>
+      diagnose(
+        realProbes(AGENT_PIPE, async () => {
+          try {
+            await realSend(paths, 'status', {}, { start: false });
+            return true;
+          } catch {
+            return false;
+          }
+        }),
+      ),
   };
 }
 
@@ -142,6 +163,35 @@ export function buildProgram(deps: CliDeps): Command {
     .command('run', { isDefault: true })
     .description('Run the agent in this window (what `voult agent install` starts at logon)')
     .action(() => deps.runAgent());
+
+  agent
+    .command('install')
+    .description('Start the agent automatically when you log in to Windows')
+    .action(async () => {
+      await deps.installAgent();
+      deps.out(
+        'Installed. The agent will start (hidden) at your next logon; run `voult agent` to start it now.',
+      );
+    });
+  agent
+    .command('uninstall')
+    .description('Remove the logon task')
+    .action(async () => {
+      await deps.uninstallAgent();
+      deps.out('Removed the logon task.');
+    });
+  agent
+    .command('doctor')
+    .description('Check everything the SSH agent needs and say how to fix what is wrong')
+    .action(async () => {
+      let bad = 0;
+      for (const c of await deps.doctor()) {
+        deps.out(`${c.ok ? (c.warn ? '!' : '✓') : '✗'} ${c.name}: ${c.message}`);
+        if (c.fix) deps.out(`    fix: ${c.fix}`);
+        if (!c.ok) bad++;
+      }
+      if (bad) process.exitCode = 1;
+    });
 
   program
     .command('config [key] [value]')
