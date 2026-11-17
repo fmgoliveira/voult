@@ -56,6 +56,19 @@ hardware attacks on an unlocked, rooted device.
 | Malicious update                                                          | Android: update check only on user tap, link must be an `https://github.com/` URL, installation is manual. Firefox: AMO-signed `.xpi` with a hash in `updates.json`. Chrome: store-managed.                                              |
 | Supply chain                                                              | Dependencies pinned in the lockfile, `pnpm audit --prod --audit-level high` in CI and release, strict extension CSP (no remote code, no analytics).                                                                                    |
 
+### SSH keys and the Windows companion (phase 10)
+
+| Threat | Mitigation / what remains |
+| ------ | ------------------------- |
+| Any process running as the same Windows user can ask the SSH agent to sign | An **SSH key** can require a confirmation dialog for every signature (default off); the vault auto-locks after 15 idle minutes and when Windows locks or sleeps, and locking overwrites the keys in memory. The agent only signs and lists, it never reveals a private key; add/remove-identity requests are refused. A process running as you can still wait for the vault to be unlocked and sign silently with keys that do not require confirmation. |
+| Another Windows user on the machine talks to the agent or the control pipe | Node cannot set a DACL on a named pipe, so the pipes keep the default one (other users cannot write to them). Control-pipe requests also must carry a random token stored in `%APPDATA%\Voultgent.json`, which only your profile can read. The agent pipe has no token (the OpenSSH protocol has none): signing is limited to the same-user case above. |
+| Keys exported to Termius, copied or downloaded | They are outside Voult's protection. Prefer the share sheet over the clipboard, set a passphrase on exported copies, and rotate a key in both places. |
+| Clipboard on Android | Copies are flagged sensitive (hidden from clipboard previews) and cleared after the configured delay; the private key can only be copied after a warning. Sharing writes a temp file that is deleted when the share sheet closes (or after 60 s). |
+| DPAPI protects the refresh token only | `session.json` holds the device refresh token sealed with DPAPI (CurrentUser). It does **not** protect the vault: the vault copy (`store.json`) is ciphertext that needs the master password, exactly like on the server. Anyone who can run code as you can use the refresh token to sync the _encrypted_ vault, not to read it. |
+| A compromised device edits a host to run a program on the PC | `ProxyCommand`, `LocalCommand`, `KnownHostsCommand` and similar options in a host's extra options are dropped unless you opt in; `Host`/`Match`/`Include` and unknown keywords are always dropped so a bad line cannot break ssh for every host. Aliases, host names, users and jump hosts are validated before being written to the ssh config. |
+| Password-host helper leaks a password | The password never appears in argv, environment or a file: `voult ssh` passes ssh a one-time token (60 s, bound to your Windows user and to that host); the helper only answers a plain `password:` prompt whose target matches that host, so a jump host or a host-key question gets nothing. |
+| The agent's memory holds unlocked keys | Keys live in byte arrays that are zeroed on lock. JavaScript strings made while decrypting (the vault is parsed from JSON) cannot be erased and wait for garbage collection, so a memory dump of an _unlocked_ agent can contain keys. A dump of a locked one should not, but this is not guaranteed. |
+
 ## 4. Known limitations
 
 1. The password-strength estimator is a small built-in heuristic (not zxcvbn-ts) to avoid shipping
@@ -71,6 +84,9 @@ hardware attacks on an unlocked, rooted device.
 6. Translations cover navigation, settings, the new health/import/backup panels and the sign-in
    screens; a few older strings remain English-only (see CHANGELOG).
 7. Reproducible builds are not set up: verify an APK/extension by its signing certificate, not by hash.
+8. The Windows companion's signature log cannot name the client process (that needs a native call);
+   `voult.exe` is not code-signed, so SmartScreen may warn on first run.
+9. `voult ssh` password hosts need an interactive first connection to accept each host key.
 
 ## 5. Accessibility (WCAG 2.1 AA)
 
@@ -94,5 +110,8 @@ Start here, in this order:
 3. `apps/extension/entrypoints/content/*` and `lib/autofill/*` (page isolation, gesture checks).
 4. `modules/voult-native/.../VoultAutofillService.kt`, `FieldParser.kt`, `DeviceVault.kt`.
 5. `apps/server/src/auth/*`, `routes/*`, `backup/*` (token handling, rate limits, OAuth state).
+6. `packages/core/src/ssh/keys.ts` (OpenSSH key codec; bcrypt-pbkdf is the audited `bcrypt-pbkdf` package),
+   `apps/desktop/src/agent/*` (agent protocol, signing, confirmation), `apps/desktop/src/ssh/*`
+   (config rendering and the askpass tokens), `apps/desktop/src/ipc.ts`.
 
 Run the full suite with `pnpm lint && pnpm typecheck && pnpm test` and `pnpm --filter @voult/extension e2e`.
