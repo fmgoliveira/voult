@@ -31,20 +31,21 @@ Chrome and Firefox extension, Android app, and a tiny server you run yourself.
 
 ## Features
 
-|                        |                                                                                                                                                                    |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Vault**              | Logins, secure notes, cards and identities; search, favourites, trash with restore, password history                                                               |
-| **2FA codes**          | Built-in TOTP generator with QR scanning, shown next to the login it belongs to                                                                                    |
-| **Passkeys**           | Create and sign in with passkeys stored in your vault: in the browser through a software authenticator, and on Android 14+ through Credential Manager              |
-| **Autofill**           | Browser: inline suggestions, save and update prompts, generated passwords on sign-up forms. Android: system autofill with keyboard suggestions and a bottom drawer |
-| **Generator**          | Random passwords and passphrases with strength feedback                                                                                                            |
-| **Sync**               | Conflict-safe sync between all your devices (revision checks, offline outbox), per-device revocation                                                               |
-| **Quick unlock**       | Biometrics and a PIN on Android, a PIN in the extension, with auto-lock and clipboard clearing                                                                     |
-| **Password health**    | Finds weak, reused and old passwords on-device, with an opt-in breach check (Have I Been Pwned, k-anonymity: only a 5-character hash prefix is sent)               |
-| **Import**             | Chrome/Edge/Brave and Firefox CSV, 1Password CSV, Bitwarden JSON (with passkeys), Proton Pass JSON                                                                 |
-| **Backups**            | Daily encrypted snapshots to _your_ Google Drive (narrow `drive.file` scope), or export a `.voult` file; restore onto any server with only your master password    |
-| **Languages**          | English and Portuguese (follows the device), accessible colour contrast checked against WCAG 2.1 AA in CI                                                          |
-| **Release automation** | Tagged releases build a signed APK, Chrome and Firefox packages and an auto-updating signed Firefox `.xpi`                                                         |
+|                        |                                                                                                                                                                                                                 |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Vault**              | Logins, secure notes, cards and identities; search, favourites, trash with restore, password history                                                                                                            |
+| **2FA codes**          | Built-in TOTP generator with QR scanning, shown next to the login it belongs to                                                                                                                                 |
+| **Passkeys**           | Create and sign in with passkeys stored in your vault: in the browser through a software authenticator, and on Android 14+ through Credential Manager                                                           |
+| **Autofill**           | Browser: inline suggestions, save and update prompts, generated passwords on sign-up forms. Android: system autofill with keyboard suggestions and a bottom drawer                                              |
+| **Generator**          | Random passwords and passphrases with strength feedback                                                                                                                                                         |
+| **Sync**               | Conflict-safe sync between all your devices (revision checks, offline outbox), per-device revocation                                                                                                            |
+| **Quick unlock**       | Biometrics and a PIN on Android, a PIN in the extension, with auto-lock and clipboard clearing                                                                                                                  |
+| **Password health**    | Finds weak, reused and old passwords on-device, with an opt-in breach check (Have I Been Pwned, k-anonymity: only a 5-character hash prefix is sent)                                                            |
+| **SSH keys & hosts**   | Store SSH keys and hosts; on Windows a companion serves them through an SSH agent (no key files on disk) and logs in to password hosts; on Android share or copy them into Termius ([docs/SSH.md](docs/SSH.md)) |
+| **Import**             | Chrome/Edge/Brave and Firefox CSV, 1Password CSV, Bitwarden JSON (with passkeys), Proton Pass JSON                                                                                                              |
+| **Backups**            | Daily encrypted snapshots to _your_ Google Drive (narrow `drive.file` scope), or export a `.voult` file; restore onto any server with only your master password                                                 |
+| **Languages**          | English and Portuguese (follows the device), accessible colour contrast checked against WCAG 2.1 AA in CI                                                                                                       |
+| **Release automation** | Tagged releases build a signed APK, Chrome and Firefox packages and an auto-updating signed Firefox `.xpi`                                                                                                      |
 
 ## Screenshots
 
@@ -106,6 +107,7 @@ metadata only. The full key hierarchy, threat model and known limitations are in
 | `apps/extension`     | WXT (Manifest V3) browser extension                          |
 | `apps/mobile`        | Expo Android app with a Kotlin autofill / passkey module     |
 | `apps/server`        | Hono sync server on SQLite                                   |
+| `apps/desktop`       | Windows companion (`voult.exe`): SSH agent, ssh config       |
 | `packages/core`      | crypto, schemas, vault ops, TOTP, generator, sync, importers |
 | `packages/ui-tokens` | shared design tokens                                         |
 | `packages/config`    | tsconfig, ESLint, Vitest presets                             |

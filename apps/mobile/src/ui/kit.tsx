@@ -122,6 +122,8 @@ const TYPE_ICON: Record<ItemType, keyof typeof Ionicons.glyphMap> = {
   card: 'card-outline',
   identity: 'person-outline',
   totp: 'shield-checkmark-outline',
+  sshKey: 'key-outline',
+  sshHost: 'terminal-outline',
 };
 
 export function TypeTile({ type, size = 44 }: { type: ItemType; size?: number }) {

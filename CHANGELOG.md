@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+### Phase 10 — SSH keys & hosts
+
+- New item types **SSH key** and **SSH host** (keys stored unencrypted inside the encrypted item; a host points at a key). Core: OpenSSH key codec (generate ed25519; import OpenSSH keys, with or without a passphrase, and PEM RSA/ECDSA/ed25519; export encrypted; fingerprints match `ssh-keygen`), alias validation, password health includes host passwords. The server accepts the new item types
+- Extension: key and host screens (generate or import a key, copy the public key, download the private key with an optional passphrase, host editor with key picker and password generator)
+- Android: the same screens, plus Termius hand-off: share a private key through the share sheet (temp file deleted afterwards), share an encrypted copy, copy host/port/user/password with the sensitive clipboard flag
+- Windows companion `voult.exe` (single executable, no Node needed): `login`, `unlock`, `lock`, `status`, `sync`, `logout`, `config`; the refresh token is protected with DPAPI; auto-lock on idle and on Windows lock or sleep
+- SSH agent on the OpenSSH agent pipe (ed25519, RSA with rsa-sha2-256/512, ECDSA), optional confirmation dialog per signature, `voult agent install` (logon task) and `voult agent doctor`
+- `voult ssh config` writes `~/.ssh/voult/config` and the public keys, and adds `Include voult/config` to `~/.ssh/config`; refreshed after every sync
+- `voult ssh <alias>` logs in to password hosts through `SSH_ASKPASS` with a one-time token (OpenSSH 8.4+)
+- Release and CI: the Windows exe is built (and its tests run against the real OpenSSH client) on Windows runners; docs in [docs/SSH.md](docs/SSH.md) and the threat model in docs/SECURITY.md
+
 ### Android
 
 - Adding a 2FA code (QR scan or manual entry) can link it to an existing login, so the code lives on that login instead of as a separate item

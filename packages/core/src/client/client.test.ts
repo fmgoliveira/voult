@@ -6,6 +6,10 @@ import { ApiError, SignedOutError, VaultLockedError, WrongPasswordError } from '
 import { createTestClient, FakeServer } from './fake-server.testkit';
 import { parseSnapshot, serializeSnapshot, snapshotChecksum } from '../exchange/snapshot';
 import { snapshotFromStore } from '../exchange/local-snapshot';
+import { seal } from '../crypto/aead';
+import { toBase64Url, utf8 } from '../crypto/bytes';
+import { newKey, wrapKey } from '../crypto/keys';
+import { openVaults } from './sync';
 import { MemoryStore } from './memory-store';
 import { createMutexLock } from './store';
 
@@ -488,6 +492,56 @@ describe('vault client', () => {
     await a.session.clearAccountKey();
     await expect(a.vault.loadVault()).rejects.toBeInstanceOf(VaultLockedError);
     await expect(a.vault.saveItem(vaultId, login())).rejects.toBeInstanceOf(VaultLockedError);
+  });
+
+  it('a MemoryStore can be exported and restored (hosts that persist it to a file)', async () => {
+    const { a, vaultId } = await ready();
+    await a.vault.saveItem(vaultId, login());
+    const state = JSON.parse(JSON.stringify((a.store as MemoryStore).exportState()));
+    const copy = new MemoryStore();
+    copy.importState(state);
+    expect(await copy.listItems()).toEqual(await a.store.listItems());
+    expect(await copy.listVaults()).toEqual(await a.store.listVaults());
+    expect(await copy.listOutbox()).toEqual(await a.store.listOutbox());
+    expect(await copy.getMeta('account')).toEqual(await a.store.getMeta('account'));
+    await copy.addOutbox({ kind: 'item', id: 'x', baseRev: 0 });
+    expect((await copy.listOutbox()).at(-1)!.seq).toBeGreaterThan(
+      (await a.store.listOutbox()).at(-1)?.seq ?? 0,
+    );
+  });
+
+  it('stores ssh items and skips records of a type this client does not know', async () => {
+    const { a, vaultId } = await ready();
+    const key = itemSchema.parse({
+      type: 'sshKey',
+      title: 'k',
+      keyType: 'ed25519',
+      privateKey: 'p',
+      publicKey: 'pub',
+      fingerprint: 'SHA256:x',
+      createdAt: 1,
+      updatedAt: 1,
+    });
+    await a.vault.saveItem(vaultId, key);
+    // A record from a future client: valid ciphertext, but a type we cannot parse.
+    const accountKey = (await a.session.getAccountKey())!;
+    const vault = (await openVaults(a.store, accountKey)).get(vaultId)!;
+    const itemKey = newKey();
+    const aad = 'voult:item:future:1';
+    await a.store.putItem({
+      id: 'future',
+      vaultId,
+      type: 'login',
+      wrappedItemKey: wrapKey(vault.vaultKey, itemKey, aad),
+      ciphertext: toBase64Url(seal(itemKey, utf8(JSON.stringify({ type: 'hologram' })), aad)),
+      version: 1,
+      rev: 1,
+      updatedAt: 1,
+      deletedAt: null,
+      dirty: 0,
+    });
+    const { items } = await a.vault.loadVault();
+    expect(items.map((i) => i.item.type)).toEqual(['sshKey']);
   });
 
   it('skips undecryptable records instead of failing the list', async () => {

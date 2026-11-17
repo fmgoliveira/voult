@@ -10,9 +10,11 @@ import {
   CreditCard,
   Globe,
   IdCard,
+  KeySquare,
   Search,
   ShieldCheck,
   StickyNote,
+  Terminal,
   type LucideIcon,
 } from 'lucide-react';
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from 'react';
@@ -466,6 +468,8 @@ const TYPE_ICON: Record<ItemType, LucideIcon> = {
   card: CreditCard,
   identity: IdCard,
   totp: ShieldCheck,
+  sshKey: KeySquare,
+  sshHost: Terminal,
 };
 
 export const typeIcon = (t: ItemType) => TYPE_ICON[t];

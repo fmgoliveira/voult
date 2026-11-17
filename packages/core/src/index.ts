@@ -36,3 +36,5 @@ export * from './client/server-url';
 export * from './client/blank-item';
 export * from './i18n';
 export * from './client/release';
+export * from './ssh/keys';
+export * from './ssh/hosts';

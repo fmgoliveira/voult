@@ -22,6 +22,8 @@ export const TYPE_LABEL: Record<ItemType, string> = {
   card: 'Card',
   identity: 'Identity',
   totp: '2FA code',
+  sshKey: 'SSH key',
+  sshHost: 'SSH host',
 };
 
 export const TYPE_ICON: Record<ItemType, keyof typeof Ionicons.glyphMap> = {
@@ -30,6 +32,8 @@ export const TYPE_ICON: Record<ItemType, keyof typeof Ionicons.glyphMap> = {
   card: 'card-outline',
   identity: 'person-outline',
   totp: 'shield-checkmark-outline',
+  sshKey: 'key-outline',
+  sshHost: 'terminal-outline',
 };
 
 export function subtitle(i: Item): string {
@@ -42,6 +46,10 @@ export function subtitle(i: Item): string {
       return i.fullName || i.email;
     case 'totp':
       return i.totp.issuer || i.totp.account;
+    case 'sshKey':
+      return i.comment || i.fingerprint;
+    case 'sshHost':
+      return i.username ? `${i.username}@${i.hostname}` : i.hostname;
     default:
       return '';
   }

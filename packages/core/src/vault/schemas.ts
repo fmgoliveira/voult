@@ -95,15 +95,64 @@ export const totpItemSchema = z.object({
   totp: totpSchema,
 });
 
+export const SSH_KEY_TYPES = ['ed25519', 'rsa', 'ecdsa-p256', 'ecdsa-p384'] as const;
+export type SshKeyType = (typeof SSH_KEY_TYPES)[number];
+
+/** An SSH private key (OpenSSH format, stored unencrypted inside the encrypted item). */
+export const sshKeySchema = z.object({
+  ...base,
+  type: z.literal('sshKey'),
+  keyType: z.enum(SSH_KEY_TYPES),
+  /** `-----BEGIN OPENSSH PRIVATE KEY-----` block, unencrypted. */
+  privateKey: z.string(),
+  /** authorized_keys line: `ssh-ed25519 AAAA… comment`. */
+  publicKey: z.string(),
+  /** `SHA256:…`, as `ssh-keygen -lf` prints it. */
+  fingerprint: z.string(),
+  comment: z.string().default(''),
+  /** Only used when exporting an encrypted copy of the key. */
+  passphrase: z.string().default(''),
+  agent: z
+    .object({
+      enabled: z.boolean().default(true),
+      confirm: z.boolean().default(false),
+    })
+    .default({ enabled: true, confirm: false }),
+});
+
+/** `Host` alias in an ssh config. */
+export const SSH_ALIAS_RE = /^[A-Za-z0-9._-]+$/;
+
+export const sshHostSchema = z.object({
+  ...base,
+  type: z.literal('sshHost'),
+  alias: z.string(),
+  hostname: z.string(),
+  port: z.number().int().min(1).max(65535).default(22),
+  username: z.string().default(''),
+  auth: z.enum(['key', 'password', 'keyAndPassword']),
+  keyItemId: z.string().optional(),
+  password: z.string().default(''),
+  passwordHistory: z.array(passwordVersionSchema).default([]),
+  /** Alias of another sshHost, or `user@host`. */
+  proxyJump: z.string().default(''),
+  /** Raw `Key value` lines appended to the Host block. */
+  extraOptions: z.string().default(''),
+});
+
 export const itemSchema = z.discriminatedUnion('type', [
   loginSchema,
   noteSchema,
   cardSchema,
   identitySchema,
   totpItemSchema,
+  sshKeySchema,
+  sshHostSchema,
 ]);
 export type Item = z.infer<typeof itemSchema>;
 export type LoginItem = z.infer<typeof loginSchema>;
+export type SshKeyItem = z.infer<typeof sshKeySchema>;
+export type SshHostItem = z.infer<typeof sshHostSchema>;
 export type ItemType = Item['type'];
 
 export const vaultMetaSchema = z.object({

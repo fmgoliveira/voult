@@ -1,7 +1,10 @@
 import { sha1 } from '@noble/hashes/legacy.js';
 import { bytesToHex } from '@noble/hashes/utils.js';
 import { utf8 } from '../crypto/bytes';
-import type { LoginItem } from '../vault/schemas';
+import type { LoginItem, SshHostItem } from '../vault/schemas';
+
+/** Items that carry a password we can assess. */
+type PasswordItem = LoginItem | SshHostItem;
 import type { ItemView } from './types';
 
 // ---------------------------------------------------------------- strength
@@ -78,12 +81,12 @@ export interface HealthReport {
 
 const live = (items: ItemView[]) =>
   items.filter(
-    (v): v is ItemView & { item: LoginItem } =>
-      !v.deletedAt && v.item.type === 'login' && !!v.item.password,
+    (v): v is ItemView & { item: PasswordItem } =>
+      !v.deletedAt && (v.item.type === 'login' || v.item.type === 'sshHost') && !!v.item.password,
   );
 
 /** When the current password was set: the newest history entry, else the item's creation. */
-export function passwordAge(item: LoginItem): number {
+export function passwordAge(item: PasswordItem): number {
   const last = item.passwordHistory.at(-1)?.changedAt;
   return last ?? item.createdAt;
 }

@@ -1,0 +1,6 @@
+version: 2
+
+secret:
+  ignored_paths:
+    # Throwaway keys generated with ssh-keygen purely as parser test fixtures. They protect nothing.
+    - 'packages/core/test/fixtures/ssh/**'

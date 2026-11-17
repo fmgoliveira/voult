@@ -8,7 +8,15 @@ describe('ui-tokens', () => {
     expect(brandGradient.dark).toHaveLength(2);
   });
   it('has a gradient for every item type', () => {
-    expect(Object.keys(typeColors).sort()).toEqual(['card', 'identity', 'login', 'note', 'totp']);
+    expect(Object.keys(typeColors).sort()).toEqual([
+      'card',
+      'identity',
+      'login',
+      'note',
+      'sshHost',
+      'sshKey',
+      'totp',
+    ]);
   });
   it('picks a stable avatar gradient per seed', () => {
     expect(avatarGradient('GitHub')).toEqual(avatarGradient('GitHub'));

@@ -1,0 +1,31 @@
+{
+  "name": "@voult/desktop",
+  "version": "0.0.0",
+  "license": "AGPL-3.0-or-later",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "voult": "./dist/voult.cjs"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "build:exe": "node scripts/build.mjs --exe",
+    "dev": "tsx src/main.ts",
+    "test": "vitest run",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@voult/core": "workspace:*",
+    "commander": "^14.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "@types/ssh2": "^1.15.5",
+    "esbuild": "^0.28.2",
+    "hash-wasm": "^4.12.0",
+    "postject": "^1.0.0-alpha.6",
+    "ssh2": "^1.17.0",
+    "tsx": "^4.23.15"
+  }
+}

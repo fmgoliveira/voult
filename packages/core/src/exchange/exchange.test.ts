@@ -428,3 +428,49 @@ describe('Bitwarden passkey import', () => {
     ).toBe(true);
   });
 });
+
+describe('ssh items in exports', () => {
+  it('the CSV export skips them without failing, the JSON export keeps them', () => {
+    const base = { title: 't', createdAt: 1, updatedAt: 1 };
+    const key = itemSchema.parse({
+      ...base,
+      type: 'sshKey',
+      keyType: 'ed25519',
+      privateKey: 'p',
+      publicKey: 'ssh-ed25519 AAAA',
+      fingerprint: 'SHA256:x',
+    });
+    const host = itemSchema.parse({
+      ...base,
+      type: 'sshHost',
+      alias: 'box',
+      hostname: 'h',
+      auth: 'key',
+    });
+    const login = itemSchema.parse({ ...base, type: 'login', title: 'L', password: 'pw' });
+    const opened = {
+      vaults: [
+        {
+          id: 'v',
+          meta: { name: 'Personal', colour: '#000', icon: 'lock' },
+          items: [key, host, login].map((item, i) => ({
+            id: `i${i}`,
+            rev: 1,
+            deletedAt: null,
+            item,
+          })),
+        },
+      ],
+      counts: { items: 3, totp: 0, passkeys: 0 },
+    };
+    const rows = parseCsv(exportCsv(opened));
+    expect(rows).toHaveLength(2); // header + the login
+    expect(rows[1]![0]).toBe('L');
+    const json = JSON.parse(exportJson(opened));
+    expect(json.vaults[0].items.map((i: { type: string }) => i.type)).toEqual([
+      'sshKey',
+      'sshHost',
+      'login',
+    ]);
+  });
+});

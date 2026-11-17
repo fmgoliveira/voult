@@ -54,5 +54,31 @@ export function blankItem(type: ItemType): Item {
           account: '',
         },
       };
+    case 'sshKey':
+      return {
+        ...base,
+        type,
+        keyType: 'ed25519',
+        privateKey: '',
+        publicKey: '',
+        fingerprint: '',
+        comment: '',
+        passphrase: '',
+        agent: { enabled: true, confirm: false },
+      };
+    case 'sshHost':
+      return {
+        ...base,
+        type,
+        alias: '',
+        hostname: '',
+        port: 22,
+        username: '',
+        auth: 'key',
+        password: '',
+        passwordHistory: [],
+        proxyJump: '',
+        extraOptions: '',
+      };
   }
 }

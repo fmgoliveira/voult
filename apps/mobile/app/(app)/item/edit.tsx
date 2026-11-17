@@ -5,6 +5,8 @@ import {
   inferIdentifier,
   itemSchema,
   parseTotpInput,
+  pushPasswordHistory,
+  sshDraftProblem,
   type Item,
   type ItemType,
   type LoginItem,
@@ -21,6 +23,7 @@ import { GeneratorSheet } from '../../../src/ui/generator';
 import { Button, ErrorText, Field, IconButton, Screen, TypeTile } from '../../../src/ui/kit';
 import { TYPE_LABEL } from '../../../src/ui/items';
 import { attachTotp, LinkLogin } from '../../../src/ui/link-login';
+import { SshHostFields, SshKeyFields } from '../../../src/ui/ssh';
 import { useTheme } from '../../../src/ui/theme';
 
 type Draft = Item & Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -153,6 +156,27 @@ export default function EditItem() {
         const linkTarget =
           !existing && next.type === 'totp' ? items.find((i) => i.id === linkId) : undefined;
         if (linkTarget && !next.title.trim()) next = { ...next, title: linkTarget.item.title };
+        if (next.type === 'sshHost' || next.type === 'sshKey') {
+          const problem = sshDraftProblem(next, items, existing?.id);
+          if (problem) throw new Error(problem);
+        }
+        if (
+          next.type === 'sshHost' &&
+          existing?.item.type === 'sshHost' &&
+          next.password !== existing.item.password
+        ) {
+          next = {
+            ...next,
+            passwordHistory: pushPasswordHistory(
+              existing.item.passwordHistory,
+              existing.item.password,
+              Date.now(),
+            ),
+          };
+        }
+        if (!next.title.trim() && next.type === 'sshHost' && next.alias) {
+          next = { ...next, title: next.alias };
+        }
         if (!next.title.trim()) throw new Error('Give it a title.');
         const parsed = itemSchema.safeParse(next);
         if (!parsed.success) throw new Error('Some fields are invalid.');
@@ -316,6 +340,11 @@ export default function EditItem() {
               {text('Address', 'address')}
               {text('Birthday', 'birthday')}
             </>
+          )}
+
+          {draft.type === 'sshKey' && <SshKeyFields draft={draft} patch={patch} />}
+          {draft.type === 'sshHost' && (
+            <SshHostFields draft={draft} patch={patch} selfId={existing?.id} />
           )}
 
           <Field

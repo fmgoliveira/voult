@@ -20,6 +20,7 @@ jobs:
       previous: ${{ steps.diff.outputs.previous }}
       extension: ${{ steps.diff.outputs.extension }}
       android: ${{ steps.diff.outputs.android }}
+      desktop: ${{ steps.diff.outputs.desktop }}
     steps:
       - uses: actions/checkout@v7
         with: { fetch-depth: 0 }
@@ -28,7 +29,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           PREV=$(git tag --list 'v*.*.*' --sort=-v:refname | grep -vx "$GITHUB_REF_NAME" | head -n1 || true)
-          EXT=true; AND=true
+          EXT=true; AND=true; DESK=true
           if [ -n "$PREV" ]; then
             # Each app is rebuilt only when something it is built from changed: its own folder or
             # the packages it uses (the same ones for both apps). Server, docs, CI files, the
@@ -38,16 +39,19 @@ jobs:
             SHARED='^(packages/(core|ui-tokens|config)/|pnpm-workspace\.yaml$|\.npmrc$|scripts/release-metadata\.mjs$)'
             echo "$CHANGED" | grep -qE "$SHARED|^apps/extension/" || EXT=false
             echo "$CHANGED" | grep -qE "$SHARED|^apps/mobile/" || AND=false
+            echo "$CHANGED" | grep -qE "$SHARED|^apps/desktop/" || DESK=false
             echo "changed files:"; echo "$CHANGED"
             # Never skip a part whose files the previous release does not have to reuse.
             ASSETS=$(gh release view "$PREV" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' || true)
             echo "$ASSETS" | grep -q -- '-chrome\.zip$' || EXT=true
             echo "$ASSETS" | grep -q -- '\.apk$' || AND=true
+            echo "$ASSETS" | grep -q -- 'voult-windows\.exe$' || DESK=true
           fi
           echo "previous=$PREV" >> "$GITHUB_OUTPUT"
           echo "extension=$EXT" >> "$GITHUB_OUTPUT"
           echo "android=$AND" >> "$GITHUB_OUTPUT"
-          echo "previous tag: ${PREV:-none}; rebuild extension: $EXT; rebuild android: $AND"
+          echo "desktop=$DESK" >> "$GITHUB_OUTPUT"
+          echo "previous tag: ${PREV:-none}; rebuild extension: $EXT; android: $AND; desktop: $DESK"
 
   checks:
     runs-on: ubuntu-latest
@@ -158,6 +162,33 @@ jobs:
           if-no-files-found: error
           path: apps/mobile/android/app/build/outputs/apk/release/voult-*.apk
 
+  desktop:
+    # The Windows companion (SSH agent, ssh config, `voult ssh`): one self-contained voult.exe.
+    needs: [changes, checks]
+    if: needs.changes.outputs.desktop == 'true'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @voult/core build
+      - run: pnpm --filter @voult/desktop build:exe
+      - name: Smoke test the packaged exe (no Node on PATH needed)
+        shell: bash
+        run: |
+          export VOULT_HOME="$RUNNER_TEMP/voult-smoke"
+          apps/desktop/dist/voult.exe --help
+          apps/desktop/dist/voult.exe status || true
+      - run: Copy-Item apps/desktop/dist/voult.exe voult-windows.exe
+        shell: pwsh
+      - uses: actions/upload-artifact@v7
+        with:
+          name: desktop
+          if-no-files-found: error
+          path: voult-windows.exe
+
   chrome-store:
     # Uploads a draft to the (unlisted) Chrome Web Store item when credentials exist. Publishing
     # stays a manual click in the dashboard.
@@ -180,7 +211,7 @@ jobs:
           npx --yes chrome-webstore-upload-cli@3 upload --source "$ZIP" --auto-publish false
 
   publish:
-    needs: [changes, extension, firefox-sign, android]
+    needs: [changes, extension, firefox-sign, android, desktop]
     # Runs when each part was either built or deliberately skipped, not when something failed.
     if: ${{ !cancelled() && !contains(needs.*.result, 'failure') }}
     runs-on: ubuntu-latest
@@ -199,6 +230,9 @@ jobs:
       - name: Reuse the Android APK from the previous release
         if: needs.changes.outputs.android != 'true'
         run: gh release download "$PREVIOUS" --repo "$GITHUB_REPOSITORY" --dir assets --pattern 'voult-*.apk'
+      - name: Reuse the Windows companion from the previous release
+        if: needs.changes.outputs.desktop != 'true'
+        run: gh release download "$PREVIOUS" --repo "$GITHUB_REPOSITORY" --dir assets --pattern 'voult-windows.exe'
       - name: Create the GitHub release
         run: |
           gh release create "$GITHUB_REF_NAME" assets/* --repo "$GITHUB_REPOSITORY"             --title "Voult ${GITHUB_REF_NAME#v}" --generate-notes
