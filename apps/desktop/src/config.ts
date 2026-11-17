@@ -8,6 +8,8 @@ export interface Config {
   lockOnSessionLock: boolean;
   /** Rewrite the ssh config after every sync. */
   sshConfigOnSync: boolean;
+  /** Let a host's extra options use ProxyCommand, LocalCommand… (they run programs). */
+  allowCommandOptions: boolean;
   /** Seconds a signature confirmation stays open before it counts as a denial. */
   confirmTimeoutSeconds: number;
 }
@@ -16,6 +18,7 @@ export const DEFAULT_CONFIG: Config = {
   idleLockMinutes: 15,
   lockOnSessionLock: true,
   sshConfigOnSync: true,
+  allowCommandOptions: false,
   confirmTimeoutSeconds: 30,
 };
 
@@ -33,6 +36,10 @@ export function loadConfig(file: string): Config {
         typeof raw.sshConfigOnSync === 'boolean'
           ? raw.sshConfigOnSync
           : DEFAULT_CONFIG.sshConfigOnSync,
+      allowCommandOptions:
+        typeof raw.allowCommandOptions === 'boolean'
+          ? raw.allowCommandOptions
+          : DEFAULT_CONFIG.allowCommandOptions,
       confirmTimeoutSeconds: nonNegative(
         raw.confirmTimeoutSeconds,
         DEFAULT_CONFIG.confirmTimeoutSeconds,

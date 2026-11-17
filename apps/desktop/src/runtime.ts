@@ -178,9 +178,12 @@ export function createRuntime(deps: RuntimeDeps) {
     return runSync();
   }
 
+  const lockListeners: (() => void)[] = [];
+
   function lockVault(): void {
     keyring.wipe();
     wipeAccountKey();
+    for (const l of lockListeners) l();
   }
 
   async function logout(): Promise<void> {
@@ -218,6 +221,10 @@ export function createRuntime(deps: RuntimeDeps) {
     },
     setConfig(c: Config) {
       config = c;
+    },
+    /** Run `fn` whenever the vault locks (including logout). */
+    onLock(fn: () => void) {
+      lockListeners.push(fn);
     },
     login,
     unlock,

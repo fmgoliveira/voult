@@ -96,3 +96,22 @@ export async function startDaemon(opts: DaemonOptions): Promise<Daemon> {
     },
   };
 }
+
+type Extend = NonNullable<DaemonOptions['extend']>;
+
+/** Run several extensions as one. */
+export function combineExtensions(...exts: Extend[]): Extend {
+  return (runtime) => {
+    const parts = exts.map((e) => e(runtime));
+    return {
+      ready: Promise.all(parts.map((p) => p.ready)),
+      handlers: Object.assign({}, ...parts.map((p) => p.handlers ?? {})),
+      async afterSync(items) {
+        for (const p of parts) await p.afterSync?.(items);
+      },
+      async stop() {
+        for (const p of parts) await p.stop?.();
+      },
+    };
+  };
+}

@@ -1,10 +1,12 @@
 import { parsePrivateKey, setArgon2Implementation, type ParsedSshKey } from '@voult/core';
 import { execFile } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { writeSshConfig } from '../src/ssh/config';
 import type { AddressInfo } from 'node:net';
 import path from 'node:path';
-import { Server, utils } from 'ssh2';
+import ssh2 from 'ssh2';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { agentExtension } from '../src/agent';
 import { resolveSsh } from '../src/agent/doctor';
@@ -16,6 +18,7 @@ import {
   SERVER_URL,
   generateEd25519,
   seededServer,
+  sshHostItem,
   sshKeyItem,
   tempPaths,
   useCheapArgon2,
@@ -28,6 +31,7 @@ import {
 const FIXTURES = path.resolve(__dirname, '../../../packages/core/test/fixtures/ssh');
 const fixture = (n: string) => parsePrivateKey(readFileSync(path.join(FIXTURES, n), 'utf8'));
 
+const { Server, utils } = ssh2;
 const win = process.platform === 'win32';
 const pipe = `\\\\.\\pipe\\voult-agent-test-${randomBytes(6).toString('hex')}`;
 
@@ -47,12 +51,13 @@ const run = (file: string, args: string[], env: Record<string, string> = {}) =>
   });
 
 /** An SSH server that accepts exactly one public key and answers `exec` with "hello". */
-function sshServer(accept: () => ParsedSshKey) {
+function sshServer(accept: () => ParsedSshKey, offered: string[] = []) {
   const host = fixture('ed25519');
   const server = new Server({ hostKeys: [host.privateKey] }, (client) => {
     client
       .on('authentication', (ctx) => {
         if (ctx.method !== 'publickey') return ctx.reject(['publickey']);
+        if (!ctx.signature) offered.push(ctx.key.algo + ':' + ctx.key.data.toString('base64'));
         const allowed = utils.parseKey(accept().publicKey);
         if (allowed instanceof Error) return ctx.reject();
         const same =
@@ -219,5 +224,63 @@ describe.skipIf(!win)('SSH agent with the real OpenSSH client', () => {
     }
     await daemon.runtime.unlock(PASSWORD);
     expect(daemon.runtime.keyring.size).toBe(5);
+  }, 60_000);
+
+  it('a host written by `voult ssh config` connects through the agent offering only its key', async () => {
+    const sshDir = mkdtempSync(path.join(tmpdir(), 'voult-sshcfg-'));
+    const items = await daemon.runtime.loadItems();
+    const target = items.find((v) => v.item.type === 'sshKey' && v.item.title === 'p256')!;
+    const hostItem = {
+      ...sshHostItem({
+        alias: 'agenthost',
+        hostname: '127.0.0.1',
+        username: 'tester',
+        keyItemId: target.id,
+      }),
+    };
+    const view = { id: 'h1', vaultId: 'v', item: hostItem, deletedAt: null, dirty: false };
+    await writeSshConfig(sshDir, [...items, view], { lockDown: async () => undefined });
+
+    // `~/.ssh/voult` is the real home on this machine; point the generated paths at the temp dir.
+    const dir = path.join(sshDir, 'voult').replaceAll(String.fromCharCode(92), '/');
+    const generated = readFileSync(path.join(sshDir, 'voult', 'config'), 'utf8').replace(
+      /~\/\.ssh\/voult/g,
+      dir,
+    );
+    expect(generated).toContain('IdentitiesOnly yes');
+    const mainConfig = path.join(sshDir, 'main');
+
+    current = keys.p256!;
+    const offered: string[] = [];
+    const srv = await sshServer(() => current, offered);
+    try {
+      writeFileSync(mainConfig, generated.replace('Port 22', `Port ${srv.port}`));
+      const r = await run(
+        ssh,
+        [
+          '-F',
+          mainConfig,
+          '-T',
+          '-o',
+          'StrictHostKeyChecking=no',
+          '-o',
+          'UserKnownHostsFile=NUL',
+          '-o',
+          'BatchMode=yes',
+          '-o',
+          'IdentityFile=NUL',
+          'agenthost',
+          'true',
+        ],
+        { SSH_AUTH_SOCK: pipe },
+      );
+      expect(r.err).not.toMatch(/Permission denied/);
+      expect(r.code).toBe(0);
+      // Of the five keys in the agent, ssh offered just the one the host names.
+      expect(offered).toHaveLength(1);
+      expect(offered[0]).toContain('ecdsa-sha2-nistp256');
+    } finally {
+      srv.close();
+    }
   }, 60_000);
 });

@@ -1,6 +1,7 @@
 import { agentExtension } from './agent';
 import { FIX_BUILTIN_AGENT } from './agent/doctor';
-import { startDaemon } from './daemon';
+import { combineExtensions, startDaemon } from './daemon';
+import { sshExtension } from './ssh/extension';
 import { windowsDpapi } from './dpapi';
 import { AGENT_PIPE, type Paths } from './paths';
 
@@ -13,7 +14,7 @@ export async function runAgent(paths: Paths): Promise<void> {
       dpapi: windowsDpapi,
       syncEveryMs: 5 * 60_000,
       watchSession: true,
-      extend: agentExtension({ paths }),
+      extend: combineExtensions(agentExtension({ paths }), sshExtension({ paths })),
     });
   } catch (e) {
     if ((e as { code?: string }).code === 'EADDRINUSE') {

@@ -5,6 +5,13 @@ import { selfCommand, send as realSend } from './client';
 import type { Config } from './config';
 import { IpcError } from './ipc';
 import { AGENT_PIPE, type Paths } from './paths';
+import {
+  askpassProgramFor,
+  realRunSsh,
+  realSsh,
+  runSshWrapper,
+  type WrapperDeps,
+} from './ssh/wrapper';
 import { promptHidden, readLineFromStdin } from './prompt';
 import type { Status } from './runtime';
 
@@ -25,14 +32,28 @@ export interface CliDeps {
   installAgent: () => Promise<void>;
   uninstallAgent: () => Promise<void>;
   doctor: () => Promise<Check[]>;
+  /** Runs ssh for `voult ssh <alias>` (injected so tests do not start a real ssh). */
+  wrapper: () => WrapperDeps;
 }
 
 export function defaultDeps(paths: Paths): CliDeps {
+  const out = (l: string) => console.log(l);
+  const err = (l: string) => console.error(l);
+  const send: CliDeps['send'] = (cmd, args, opts) => realSend(paths, cmd, args, opts);
   return {
     paths,
-    send: (cmd, args, opts) => realSend(paths, cmd, args, opts),
-    out: (l) => console.log(l),
-    err: (l) => console.error(l),
+    send,
+    out,
+    err,
+    wrapper: () => ({
+      paths,
+      send,
+      out,
+      err,
+      ssh: realSsh,
+      runSsh: realRunSsh,
+      askpassProgram: () => askpassProgramFor(paths),
+    }),
     promptPassword: promptHidden,
     readStdinLine: readLineFromStdin,
     runAgent: async () => (await import('./run-agent')).runAgent(paths),
@@ -81,6 +102,7 @@ export function buildProgram(deps: CliDeps): Command {
   const program = new Command('voult')
     .description('Voult desktop companion: SSH agent, ssh config and password-host login')
     .exitOverride()
+    .enablePositionalOptions()
     .configureOutput({
       writeOut: (s) => deps.out(s.trimEnd()),
       writeErr: (s) => deps.err(s.trimEnd()),
@@ -191,6 +213,47 @@ export function buildProgram(deps: CliDeps): Command {
         if (!c.ok) bad++;
       }
       if (bad) process.exitCode = 1;
+    });
+
+  program
+    .command('ssh [args...]')
+    .description(
+      'ssh to a host from your vault: `voult ssh <alias> [-- ssh args]`, `voult ssh config`, `voult ssh --list`',
+    )
+    .allowUnknownOption()
+    .passThroughOptions()
+    .helpOption(false)
+    .action(async (args: string[]) => {
+      const [first, ...rest] = args;
+      if (!first || first === '--help' || first === '-h') {
+        deps.out('Usage: voult ssh <alias> [-- ssh args]');
+        deps.out('       voult ssh config');
+        deps.out('       voult ssh --list');
+        return;
+      }
+      if (first === '--list') {
+        const hosts =
+          await deps.send<{ alias: string; hostname: string; username: string; auth: string }[]>(
+            'sshList',
+          );
+        for (const h of hosts) {
+          deps.out(`${h.alias}\t${h.username ? h.username + '@' : ''}${h.hostname}\t${h.auth}`);
+        }
+        return;
+      }
+      if (first === 'config') {
+        const r = await deps.send<{
+          dir: string;
+          hosts: string[];
+          keys: number;
+          warnings: string[];
+        }>('sshConfig');
+        deps.out(`Wrote ${r.hosts.length} host(s) and ${r.keys} public key(s) to ${r.dir}`);
+        for (const w of r.warnings) deps.err(`warning: ${w}`);
+        return;
+      }
+      const extra = rest[0] === '--' ? rest.slice(1) : rest;
+      process.exitCode = await runSshWrapper(deps.wrapper(), first, extra);
     });
 
   program

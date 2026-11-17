@@ -2,11 +2,13 @@ import { randomBytes } from 'node:crypto';
 import type net from 'node:net';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, rmSync } from 'node:fs';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildProgram, formatStatus, runCli, type CliDeps } from '../src/cli';
 import { DEFAULT_CONFIG, loadConfig, saveConfig, setConfigValue } from '../src/config';
-import { startDaemon, type Daemon } from '../src/daemon';
+import { combineExtensions, startDaemon, type Daemon } from '../src/daemon';
+import { sshExtension } from '../src/ssh/extension';
+import { sshHostItem } from './helpers';
 import { fakeDpapi, windowsDpapi } from '../src/dpapi';
 import { FileStore } from '../src/file-store';
 import { callIpc, IpcError, serveIpc } from '../src/ipc';
@@ -106,6 +108,9 @@ describe('daemon + cli end to end (over a real named pipe)', () => {
       installAgent: async () => undefined,
       uninstallAgent: async () => undefined,
       doctor: async () => [],
+      wrapper: () => {
+        throw new Error('not used');
+      },
     };
     const run = (...argv: string[]) => runCli(argv, deps, buildProgram(deps));
     try {
@@ -278,4 +283,72 @@ describe.skipIf(process.platform !== 'win32')('Windows DPAPI', () => {
   it('rejects data that was not protected by this user', async () => {
     await expect(windowsDpapi.unprotect(new Uint8Array([1, 2, 3]))).rejects.toThrow(/DPAPI/);
   }, 30_000);
+});
+
+describe('voult ssh config / --list over the control pipe', () => {
+  it('writes the ssh config for the vault and lists the hosts', async () => {
+    const key = generateEd25519('k');
+    const { server } = await seededServer([
+      sshKeyItem(key, { title: 'Key' }),
+      sshHostItem({ alias: 'zeta', hostname: 'z.example.com', auth: 'password', password: 'x' }),
+      sshHostItem({ alias: 'alpha', hostname: 'a.example.com', username: 'me' }),
+    ]);
+    const paths = tempPaths();
+    const pipe = pipeName();
+    const daemon = await startDaemon({
+      paths,
+      dpapi: fakeDpapi,
+      pipe,
+      fetch: ((i: string | URL | Request, n?: RequestInit) => server.fetch(i, n)) as typeof fetch,
+      extend: combineExtensions(sshExtension({ paths, lockDown: async () => undefined })),
+    });
+    const out: string[] = [];
+    const errs: string[] = [];
+    const rt = JSON.parse(readFileSync(paths.runtime, 'utf8')) as { token: string };
+    const deps = {
+      paths,
+      send: (cmd: string, args: Record<string, unknown> = {}) =>
+        callIpc(pipe, { token: rt.token, cmd, args }),
+      out: (l: string) => out.push(l),
+      err: (l: string) => errs.push(l),
+      promptPassword: async () => PASSWORD,
+      readStdinLine: async () => PASSWORD,
+      runAgent: async () => undefined,
+      installAgent: async () => undefined,
+      uninstallAgent: async () => undefined,
+      doctor: async () => [],
+      wrapper: () => {
+        throw new Error('not used');
+      },
+    } as unknown as CliDeps;
+    const run = (...argv: string[]) => runCli(argv, deps, buildProgram(deps));
+    try {
+      expect(await run('login', SERVER_URL, EMAIL)).toBe(0);
+      // Signing in already wrote the config (sshConfigOnSync is on by default).
+      expect(existsSync(path.join(paths.sshDir, 'voult', 'config'))).toBe(true);
+      const main = readFileSync(path.join(paths.sshDir, 'config'), 'utf8').split('\n');
+      expect(main[0]).toMatch(/^# Voult: managed hosts/);
+      expect(main[1]).toBe('Include voult/config');
+
+      out.length = 0;
+      expect(await run('ssh', 'config')).toBe(0);
+      expect(out[0]).toMatch(/Wrote 2 host\(s\) and 0 public key\(s\)/);
+
+      out.length = 0;
+      expect(await run('ssh', '--list')).toBe(0);
+      expect(out).toEqual(['alpha\tme@a.example.com\tkey', 'zeta\tz.example.com\tpassword']);
+
+      // Turn it off: a sync no longer rewrites the file.
+      await run('config', 'sshConfigOnSync', 'off');
+      rmSync(path.join(paths.sshDir, 'voult'), { recursive: true });
+      await run('sync');
+      expect(existsSync(path.join(paths.sshDir, 'voult', 'config'))).toBe(false);
+
+      await run('lock');
+      expect(await run('ssh', '--list')).toBe(1);
+      expect(errs.at(-1)).toMatch(/locked/i);
+    } finally {
+      await daemon.stop();
+    }
+  });
 });
