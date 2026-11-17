@@ -1,3 +1,4 @@
+import { clearDrafts } from './draft';
 import {
   VaultLockedError,
   WrongPasswordError,
@@ -78,8 +79,12 @@ export const {
   unlockWithRecoverySecret,
   changePassword,
   confirmRecoveryKit,
-  signOut,
 } = accounts;
+
+export async function signOut(): Promise<void> {
+  await clearDrafts();
+  await accounts.signOut();
+}
 
 export const { loadVault, saveItem, saveLoginEdit, trashItem, restoreItem, purgeItem } = vault;
 
@@ -87,6 +92,7 @@ export const { loadVault, saveItem, saveLoginEdit, trashItem, restoreItem, purge
 
 export async function lock(): Promise<void> {
   await clearAccountKey();
+  await clearDrafts('editor.'); // drafts may hold secrets; do not outlive the unlocked session
 }
 
 export async function unlockWithPassword(password: string): Promise<void> {
