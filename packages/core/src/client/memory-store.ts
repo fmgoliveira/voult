@@ -2,6 +2,15 @@ import { createMutexLock } from './store';
 import type { ClientStore } from './store';
 import type { LocalItem, LocalVault, OutboxOp } from './types';
 
+/** JSON-serialisable contents of a MemoryStore (for hosts that persist it to a file). */
+export interface MemoryStoreState {
+  items: LocalItem[];
+  vaults: LocalVault[];
+  outbox: OutboxOp[];
+  meta: [string, unknown][];
+  seq: number;
+}
+
 /** In-memory store: used by tests and as a reference implementation of the contract. */
 export class MemoryStore implements ClientStore {
   private items = new Map<string, LocalItem>();
@@ -72,6 +81,25 @@ export class MemoryStore implements ClientStore {
   async setMeta(key: string, value: unknown) {
     this.meta.set(key, value);
   }
+  /** Copy of everything held, safe to JSON-serialise. */
+  exportState(): MemoryStoreState {
+    return {
+      items: [...this.items.values()].map((i) => ({ ...i })),
+      vaults: [...this.vaults.values()].map((v) => ({ ...v })),
+      outbox: this.outbox.map((o) => ({ ...o })),
+      meta: [...this.meta.entries()],
+      seq: this.seq,
+    };
+  }
+  /** Replace everything with a previously exported state. */
+  importState(state: MemoryStoreState): void {
+    this.items = new Map(state.items.map((i) => [i.id, { ...i }]));
+    this.vaults = new Map(state.vaults.map((v) => [v.id, { ...v }]));
+    this.outbox = state.outbox.map((o) => ({ ...o }));
+    this.meta = new Map(state.meta);
+    this.seq = state.seq;
+  }
+
   async clearAll() {
     this.items.clear();
     this.vaults.clear();
