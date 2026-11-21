@@ -28,7 +28,7 @@
     "@noble/hashes": "^2.4.0",
     "bcrypt-pbkdf": "1.0.2",
     "hash-wasm": "^4.13.0",
-    "tldts": "^7.5.2",
+    "tldts": "^7.5.4",
     "zod": "^4.6.7"
   },
   "devDependencies": {
